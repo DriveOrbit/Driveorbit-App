@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'app/routes.dart';
+import 'screens/auth/login_page.dart';
+import 'screens/auth/forgot_password_page.dart';
 import 'app/theme.dart';
 
 void main() {
@@ -12,10 +13,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'DriveOrbit App',
+      title: 'DriveOrbit',
       theme: darkTheme, // Apply the dark theme
       initialRoute: '/login',
-      routes: appRoutes,
+      routes: {
+        '/login': (context) => const LoginPage(),
+        '/forgot-password': (context) => const ForgotPasswordPage(),
+      },
     );
   }
 }

@@ -91,14 +91,13 @@ class _LoginPageState extends State<LoginPage> {
                 'Enter your password:',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors
-                      .white, // Set text color to white for dark background
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 10),
               Container(
-                width: double.infinity, // Set the width to fill the parent
-                height: 40, // Set the desired height
+                width: double.infinity,
+                height: 40,
                 child: TextField(
                   obscureText: _obscureText,
                   decoration: InputDecoration(
@@ -156,7 +155,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: const Text(
                       'Forgot Password?',
                       style: TextStyle(
-                        color: Colors.white, // Set text color to white
+                        color: Colors.white,
                       ),
                     ),
                   ),
