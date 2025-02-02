@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'auth_controller.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  const LoginPage({super.key});
 
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -9,11 +10,31 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _obscureText = true;
+  final TextEditingController _userIdController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  String? _errorMessage;
 
   void _togglePasswordVisibility() {
     setState(() {
       _obscureText = !_obscureText;
     });
+  }
+
+  Future<void> _handleLogin() async {
+    final userId = _userIdController.text;
+    final password = _passwordController.text;
+
+    final result = await login(userId, password);
+
+    if (result != null && result.startsWith('ey')) {
+      // Token received, navigate to the dashboard
+      Navigator.pushNamed(context, '/dashboard');
+    } else {
+      // Display error message
+      setState(() {
+        _errorMessage = result;
+      });
+    }
   }
 
   @override
@@ -60,13 +81,14 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 10),
-              Container(
+              SizedBox(
                 width: double.infinity, // Set the width to fill the parent
                 height: 40, // Set the desired height
                 child: TextField(
+                  controller: _userIdController,
                   decoration: InputDecoration(
                     labelText: 'Company ID',
-                    labelStyle: TextStyle(
+                    labelStyle: const TextStyle(
                       fontSize: 14,
                       color: Color.fromARGB(178, 255, 255, 255),
                     ),
@@ -74,13 +96,13 @@ class _LoginPageState extends State<LoginPage> {
                       borderRadius: BorderRadius.circular(9.0),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: const Color.fromARGB(189, 255, 255, 255),
+                      borderSide: const BorderSide(
+                        color: Color.fromARGB(189, 255, 255, 255),
                       ),
                       borderRadius: BorderRadius.circular(9.0),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue),
+                      borderSide: const BorderSide(color: Colors.blue),
                       borderRadius: BorderRadius.circular(9.0),
                     ),
                   ),
@@ -95,27 +117,28 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 10),
-              Container(
+              SizedBox(
                 width: double.infinity,
                 height: 40,
                 child: TextField(
+                  controller: _passwordController,
                   obscureText: _obscureText,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    labelStyle: TextStyle(
+                    labelStyle: const TextStyle(
                       color: Color.fromARGB(178, 255, 255, 255),
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(9.0),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: const Color.fromARGB(189, 255, 255, 255),
+                      borderSide: const BorderSide(
+                        color: Color.fromARGB(189, 255, 255, 255),
                       ),
                       borderRadius: BorderRadius.circular(9.0),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue),
+                      borderSide: const BorderSide(color: Colors.blue),
                       borderRadius: BorderRadius.circular(9.0),
                     ),
                     suffixIcon: IconButton(
@@ -130,21 +153,24 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  // Handle login logic
-                },
-                child: const Text('Let\'s Drive!'),
+                onPressed: _handleLogin,
                 style: ElevatedButton.styleFrom(
-                  side: BorderSide(
-                    color: const Color.fromARGB(27, 255, 255, 255),
+                  side: const BorderSide(
+                    color: Color.fromARGB(27, 255, 255, 255),
                     width: 2,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15.0),
                   ),
                 ),
+                child: const Text('Let\'s Drive!'),
               ),
               const SizedBox(height: 10),
+              if (_errorMessage != null)
+                Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.red),
+                ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end, // Align to the right
                 children: [

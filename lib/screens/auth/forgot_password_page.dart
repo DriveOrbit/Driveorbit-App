@@ -36,7 +36,7 @@ class ForgotPasswordPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 170),
-              Container(
+              SizedBox(
                 width: double.infinity,
                 height: 40,
                 child: const TextField(
@@ -68,7 +68,6 @@ class ForgotPasswordPage extends StatelessWidget {
                 onPressed: () {
                   // Handle get password logic
                 },
-                child: const Text('Get Password'),
                 style: ElevatedButton.styleFrom(
                   foregroundColor: const Color.fromARGB(186, 255, 255, 255),
                   backgroundColor: const Color.fromARGB(
@@ -80,6 +79,7 @@ class ForgotPasswordPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(15.0),
                   ),
                 ),
+                child: const Text('Get Password'),
               ),
               const SizedBox(height: 5),
               Row(

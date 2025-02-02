@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/auth/forgot_password_page.dart';
+import 'screens/dashboard/dashboard_page.dart';
 import 'app/theme.dart';
 
 void main() {
@@ -8,7 +9,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +20,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginPage(),
         '/forgot-password': (context) => const ForgotPasswordPage(),
+        '/dashboard': (context) =>
+            const DashboardPage(), // Add the dashboard route
       },
     );
   }
