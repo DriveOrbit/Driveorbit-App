@@ -24,3 +24,22 @@ Future<String?> login(String userId, String password) async {
     throw Exception('Failed to login');
   }
 }
+
+Future<String> sendUserId(String userId) async {
+  final response = await http.post(
+    Uri.parse('http://10.0.2.2:8080/auth/forgot-password'),
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+    body: jsonEncode(<String, String>{
+      'userID': userId,
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    return response.body;
+  } else {
+    throw Exception('Failed to send user ID');
+  }
+}
+

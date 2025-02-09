@@ -1,7 +1,31 @@
 import 'package:flutter/material.dart';
+import 'auth_controller.dart'; // Import the auth_controller
 
-class ForgotPasswordPage extends StatelessWidget {
+class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
+
+  @override
+  _ForgotPasswordPageState createState() => _ForgotPasswordPageState();
+}
+
+class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
+  final TextEditingController _userIdController = TextEditingController();
+  String? _errorMessage;
+
+  Future<void> _sendUserId() async {
+    final userId = _userIdController.text;
+
+    try {
+      await sendUserId(userId); // Call the sendUserId function
+      // Navigate to the OTP page with the user ID
+      Navigator.pushNamed(context, '/otp', arguments: userId);
+    } catch (e) {
+      // Display error message
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +45,7 @@ class ForgotPasswordPage extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF54C1D5), // Set color for 'Trouble'
+                        color: Color(0xFF54C1D5),
                       ),
                     ),
                     TextSpan(
@@ -29,7 +53,7 @@ class ForgotPasswordPage extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF5B59A1), // Set color for 'signing in?'
+                        color: Color(0xFF5B59A1),
                       ),
                     ),
                   ],
@@ -39,9 +63,10 @@ class ForgotPasswordPage extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 height: 40,
-                child: const TextField(
+                child: TextField(
+                  controller: _userIdController,
                   textAlign: TextAlign.center,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Enter your company ID',
                     hintStyle: TextStyle(
                       fontSize: 14,
@@ -65,16 +90,12 @@ class ForgotPasswordPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  // Handle get password logic
-                },
+                onPressed: _sendUserId,
                 style: ElevatedButton.styleFrom(
                   foregroundColor: const Color.fromARGB(186, 255, 255, 255),
-                  backgroundColor: const Color.fromARGB(
-                      16, 255, 255, 255), // Button background color
+                  backgroundColor: const Color.fromARGB(16, 255, 255, 255),
                   side: const BorderSide(
-                      color: Color.fromARGB(92, 255, 255, 255),
-                      width: 2), // Border color and width
+                      color: Color.fromARGB(92, 255, 255, 255), width: 2),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15.0),
                   ),
@@ -82,6 +103,11 @@ class ForgotPasswordPage extends StatelessWidget {
                 child: const Text('Get Password'),
               ),
               const SizedBox(height: 5),
+              if (_errorMessage != null)
+                Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.red),
+                ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
