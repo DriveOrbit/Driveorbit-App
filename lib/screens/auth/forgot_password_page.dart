@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth_controller.dart'; // Import the auth_controller
+import 'auth_controller.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -16,9 +16,19 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     final userId = _userIdController.text;
 
     try {
-      await sendUserId(userId); // Call the sendUserId function
-      // Navigate to the OTP page with the user ID
-      Navigator.pushNamed(context, '/otp', arguments: userId);
+      final response = await sendUserId(userId); // Call the sendUserId function
+      final statusCode = response['statusCode'];
+      final responseMessage = response['body'];
+
+      if (statusCode == 200) {
+        // Navigate to the OTP page with the user ID
+        Navigator.pushNamed(context, '/otp', arguments: userId);
+      } else {
+        // Display error message
+        setState(() {
+          _errorMessage = responseMessage;
+        });
+      }
     } catch (e) {
       // Display error message
       setState(() {

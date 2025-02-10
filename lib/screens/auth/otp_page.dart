@@ -17,26 +17,26 @@ class _OtpPageState extends State<OtpPage> {
   String? _userId;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _userId = ModalRoute.of(context)?.settings.arguments as String?;
-    if (_userId != null) {
-      _sendUserId();
-    }
-  }
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+  //   _userId = ModalRoute.of(context)?.settings.arguments as String?;
+  //   if (_userId != null) {
+  //     _sendUserId();
+  //   }
+  // }
 
-  Future<void> _sendUserId() async {
-    try {
-      final message = await sendUserId(_userId!);
-      setState(() {
-        _apiMessage = message;
-      });
-    } catch (e) {
-      setState(() {
-        _apiMessage = 'Failed to send user ID';
-      });
-    }
-  }
+  // Future<void> _sendUserId() async {
+  //   try {
+  //     final message = await sendUserId(_userId!);
+  //     setState(() {
+  //       _apiMessage = message;
+  //     });
+  //   } catch (e) {
+  //     setState(() {
+  //       _apiMessage = 'Failed to send user ID';
+  //     });
+  //   }
+  // }
 
   Future<void> _verifyOtp() async {
     final otp = _otpController.text;

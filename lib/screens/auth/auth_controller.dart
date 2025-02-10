@@ -25,7 +25,7 @@ Future<String?> login(String userId, String password) async {
   }
 }
 
-Future<String> sendUserId(String userId) async {
+Future<Map<String, dynamic>> sendUserId(String userId) async {
   final response = await http.post(
     Uri.parse('http://10.0.2.2:8080/auth/forgot-password'),
     headers: <String, String>{
@@ -36,10 +36,8 @@ Future<String> sendUserId(String userId) async {
     }),
   );
 
-  if (response.statusCode == 200) {
-    return response.body;
-  } else {
-    throw Exception('Failed to send user ID');
-  }
+  return {
+    'statusCode': response.statusCode,
+    'body': response.body,
+  };
 }
-
