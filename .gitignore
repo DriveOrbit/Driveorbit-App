@@ -42,5 +42,3 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Ignore the dashboard_driver_page.dart file
-lib/screens/dashboard/dashboard_driver_page.dart
