@@ -12,7 +12,7 @@ class VehicleDetails extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.all(9.0),
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: const Color.fromARGB(255, 42, 41, 41),
         border: Border.all(color: Colors.white24),
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
