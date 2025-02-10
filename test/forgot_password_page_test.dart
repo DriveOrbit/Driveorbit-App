@@ -9,7 +9,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: ForgotPasswordPage()));
 
     // Verify that the Forgot Password Page displays the expected text.
-  
+
     expect(find.text('Enter your company ID'), findsOneWidget);
     expect(find.text('Get Password'), findsOneWidget);
     expect(find.text('Do you know password?'), findsOneWidget);

@@ -14,14 +14,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return  MaterialApp(
+    return MaterialApp(
       title: 'DriveOrbit',
       theme: darkTheme,
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginPage(),
         '/forgot-password': (context) => const ForgotPasswordPage(),
-        '/otp': (context) => const OtpPage(), 
+        '/otp': (context) => const OtpPage(),
         '/dashboard': (context) => const DashboardDriverPage(),
       },
     );
