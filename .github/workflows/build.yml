@@ -43,7 +43,6 @@ jobs:
           name: android-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
 
-
   build-ios:
     name: Build iOS App
     runs-on: macos-latest
