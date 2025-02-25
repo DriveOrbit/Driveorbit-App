@@ -1,6 +1,6 @@
 {
-    "name": "driveorbit_app",
-    "short_name": "driveorbit_app",
+    "name": "dashboard_ui",
+    "short_name": "dashboard_ui",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
