@@ -6,6 +6,7 @@ import 'package:driveorbit_app/screen/qr_scan/qr_scan_page.dart';
 import 'package:driveorbit_app/widgets/vehicle_details.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class DashboardDriverPage extends StatefulWidget {
@@ -121,11 +122,11 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                     text: '${getGreeting()}, ',
                     style: GoogleFonts.poppins(
                       color: const Color(0xFF6D6BF8),
-                      fontSize: 20,
+                      fontSize: 22.sp, // 20,
                     ),
                   ),
                   const TextSpan(
-                    text: 'Sachintha!',
+                    text: 'Chandeera!',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -155,7 +156,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                   floating: true,
                   automaticallyImplyLeading: false,
                   backgroundColor: Colors.black,
-                  toolbarHeight: 70,
+                  toolbarHeight: 75.h, // 70,
                   title: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 1),
                     child: Row(
@@ -288,10 +289,55 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                     ),
                   ),
                 ),
-                SliverList(
+                SliverToBoxAdapter(
+                  child: ShaderMask(
+                    shaderCallback: (Rect rect) {
+                      return LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[
+                          Colors.transparent, // Start with transparent
+                          Colors.red, // Fade to red
+                          Colors.red, // Stay red
+                          Colors.transparent, // Fade back to transparent
+                        ],
+                        stops: [
+                          0.0,
+                          0.01,
+                          (!_isExpanded) ? 0.7 : 0.9,
+                          1.0
+                        ], // Adjust stops for a smaller fade area
+                      ).createShader(rect);
+                    },
+                    blendMode: BlendMode.dstIn,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        return VehicleDetails(entity: _filteredMessages[index]);
+                      },
+                      itemCount: _isExpanded
+                          ? _filteredMessages.length
+                          : _filteredMessages.length > _initialVehicleCount
+                              ? _initialVehicleCount
+                              : _filteredMessages.length,
+                    ),
+                  ),
+                ),
+                /* SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      return VehicleDetails(entity: _filteredMessages[index]);
+                      return ShaderMask(
+                          shaderCallback: (Rect rect) {
+                            return LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: <Color>[Colors.transparent, Colors.red],
+                            ).createShader(rect);
+                          },
+                          blendMode: BlendMode.dstIn,
+                          child:
+                              VehicleDetails(entity: _filteredMessages[index]));
                     },
                     childCount: _isExpanded
                         ? _filteredMessages.length
@@ -299,8 +345,51 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                             ? _initialVehicleCount
                             : _filteredMessages.length,
                   ),
-                ),
-                SliverToBoxAdapter(
+                ), */
+                if (_isExpanded)
+                  SliverToBoxAdapter(
+                    child: _messages.length > _initialVehicleCount
+                        ? Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _isExpanded = !_isExpanded;
+                                      if (_isExpanded) {
+                                        _scrollController.animateTo(
+                                          0,
+                                          duration:
+                                              const Duration(milliseconds: 300),
+                                          curve: Curves.easeInOut,
+                                        );
+                                      }
+                                    });
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey[900],
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      side: const BorderSide(
+                                          color: Colors.white24),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 13),
+                                  ),
+                                  child: Text(
+                                    _isExpanded ? 'Show Less' : 'Show More',
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                /* SliverToBoxAdapter(
                   child: _messages.length > _initialVehicleCount
                       ? Padding(
                           padding: const EdgeInsets.all(8.0),
@@ -342,6 +431,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                         )
                       : const SizedBox.shrink(),
                 ),
+ */
               ],
             ),
           ),
@@ -354,6 +444,47 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  (_messages.length > _initialVehicleCount)
+                      ? Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isExpanded = !_isExpanded;
+                                    if (_isExpanded) {
+                                      _scrollController.animateTo(
+                                        0,
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        curve: Curves.easeInOut,
+                                      );
+                                    }
+                                  });
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey[900],
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    side:
+                                        const BorderSide(color: Colors.white24),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 13),
+                                ),
+                                child: Text(
+                                  _isExpanded ? 'Show Less' : 'Show More',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
