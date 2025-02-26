@@ -11,9 +11,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
+    return const ScreenUtilInit(
       designSize: Size(449, 973),
-      child: const MaterialApp(
+      child: MaterialApp(
         home: DashboardDriverPage(),
       ),
     );

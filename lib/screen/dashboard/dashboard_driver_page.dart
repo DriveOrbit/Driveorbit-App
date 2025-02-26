@@ -111,38 +111,40 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: '${getGreeting()}, ',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFF6D6BF8),
-                      fontSize: 22.sp, // 20,
-                    ),
+          backgroundColor: Colors.black,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Flexible(
+                // Add Flexible wrapper
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${getGreeting()}, ',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF6D6BF8),
+                          fontSize: 22.sp,
+                        ),
+                      ),
+                      const TextSpan(
+                        text: 'Chandeera!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ],
                   ),
-                  const TextSpan(
-                    text: 'Chandeera!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(width: 9),
-            const CircleAvatar(
-              backgroundImage: AssetImage('assets/chandeera.jpg'),
-            ),
-          ],
-        ),
-      ),
+              const SizedBox(width: 9),
+              const CircleAvatar(
+                backgroundImage: AssetImage('assets/chandeera.jpg'),
+              ),
+            ],
+          )),
       body: Column(
         children: [
           // Main Scrollable Content
@@ -295,7 +297,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                       return LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: <Color>[
+                        colors: const <Color>[
                           Colors.transparent, // Start with transparent
                           Colors.red, // Fade to red
                           Colors.red, // Stay red
@@ -492,7 +494,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => DriverHistoryPage()),
+                              builder: (context) => const DriverHistoryPage()),
                         );
                       },
                       icon: const Icon(Icons.history, size: 26),
@@ -578,7 +580,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => QRScannerPage()),
+                              builder: (context) => const QRScannerPage()),
                         );
                       },
                     ),
