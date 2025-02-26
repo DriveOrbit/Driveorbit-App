@@ -8,7 +8,7 @@ class MileageForm extends StatefulWidget {
 
 class _MileageFormState extends State<MileageForm> {
   TextEditingController mileageController = TextEditingController();
-  bool isFullTank = true; // Default selection
+  bool isFullTank = true; 
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +34,7 @@ class _MileageFormState extends State<MileageForm> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 decoration: InputDecoration(
                   hintText: "Enter your current mileage (KM)",
+                  hintStyle: TextStyle(color: Colors.black),
                   border: InputBorder.none,
 
                 ),
@@ -93,7 +94,7 @@ class _MileageFormState extends State<MileageForm> {
               fontWeight: FontWeight.w500,
               foreground: Paint()
                 ..shader = LinearGradient(
-                  colors: [Colors.blueAccent, Colors.purpleAccent],
+                  colors: [Colors.purpleAccent, Colors.blueAccent],
                 ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
             ),
           ),
@@ -103,8 +104,8 @@ class _MileageFormState extends State<MileageForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              fuelStatusOption("Full tank", true),
-              fuelStatusOption("Need to tank full", false),
+              fuelStatusOption("Full tank", false),
+              fuelStatusOption("Need to tank full", true),
             ],
           ),
           SizedBox(height: 30),
@@ -117,8 +118,8 @@ class _MileageFormState extends State<MileageForm> {
                 // Implement navigation or next action
               },
               child: Container(
-                width: 60,
-                height: 60,
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white24,
