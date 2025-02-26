@@ -1,4 +1,4 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class MileageForm extends StatefulWidget {
@@ -8,7 +8,7 @@ class MileageForm extends StatefulWidget {
 
 class _MileageFormState extends State<MileageForm> {
   TextEditingController mileageController = TextEditingController();
-  bool isFullTank = true; 
+  bool isFullTank = true;
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +18,43 @@ class _MileageFormState extends State<MileageForm> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Clickable Mileage Input
+          RichText(
+            textAlign: TextAlign.left,
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: "Enter your ",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF6D6BF8),
+                  ),
+                ),
+                TextSpan(
+                  text: "current\n",  // Move "current" here and add newline
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF54C1D5),
+                  ),
+                ),
+                TextSpan(
+                  text: "mileage",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF54C1D5),
+
+                  ),
+                ),
+              ],
+            ),
+          ),
+ 
+
+          SizedBox(height: 8), // Adds space between text and input field
+
+          // Input Field Box
           GestureDetector(
             onTap: () {
               FocusScope.of(context).requestFocus(FocusNode());
@@ -28,22 +65,19 @@ class _MileageFormState extends State<MileageForm> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Center(
-                child: TextField(
-                  controller: mileageController,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  decoration: InputDecoration(
-                    hintText: "Enter your current mileage (KM)",
-                    hintStyle: TextStyle(color: Colors.black),
-                    border: InputBorder.none,
-
-                  ),
+              child: TextField(
+                controller: mileageController,
+                keyboardType: TextInputType.number,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  hintText: "Enter mileage here",
+                  hintStyle: TextStyle(color: Colors.black54),
+                  border: InputBorder.none,
                 ),
-              ),  
+              ),
             ),
           ),
+
           SizedBox(height: 20),
 
           // Clickable "Take a Photo" Section
@@ -87,20 +121,45 @@ class _MileageFormState extends State<MileageForm> {
               ),
             ),
           ),
+
           SizedBox(height: 30),
 
           // Fuel Status Question
-          Text(
-            "What is your current fuel status?",
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-              foreground: Paint()
-                ..shader = LinearGradient(
-                  colors: [Colors.purpleAccent, Colors.blueAccent],
-                ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+          RichText(
+            textAlign: TextAlign.left,
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: "What is your ",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF6D6BF8),
+                  ),
+                ),
+                TextSpan(
+                  text: "current fuel\n",  
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF54C1D5),
+
+                  ),
+                ),
+                TextSpan(
+                  text: "status",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF54C1D5),
+
+                  ),
+                ),
+              ],
             ),
           ),
+
+
           SizedBox(height: 15),
 
           // Fuel Status Selector
@@ -111,6 +170,7 @@ class _MileageFormState extends State<MileageForm> {
               fuelStatusOption("Need to tank full", true),
             ],
           ),
+
           SizedBox(height: 30),
 
           // Next button
