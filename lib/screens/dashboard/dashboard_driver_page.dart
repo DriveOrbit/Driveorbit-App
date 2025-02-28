@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:driveorbit_app/models/vehicle_details_entity.dart';
-import 'package:driveorbit_app/screen/dashboard/driver_history_page.dart';
-import 'package:driveorbit_app/screen/qr_scan/qr_scan_page.dart';
+import 'package:driveorbit_app/screens/dashboard/driver_history_page.dart';
+import 'package:driveorbit_app/screens/qr_scan/qr_scan_page.dart';
 import 'package:driveorbit_app/widgets/vehicle_details.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

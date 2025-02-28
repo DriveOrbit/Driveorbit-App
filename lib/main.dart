@@ -1,4 +1,4 @@
-import 'package:driveorbit_app/screen/dashboard/dashboard_driver_page.dart';
+import 'package:driveorbit_app/screens/dashboard/dashboard_driver_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
