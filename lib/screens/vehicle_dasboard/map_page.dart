@@ -49,7 +49,8 @@ class _MapPageState extends State<MapPage> {
 
     if (permission == LocationPermission.deniedForever) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Location permissions are permanently denied")),
+        const SnackBar(
+            content: Text("Location permissions are permanently denied")),
       );
       return;
     }
@@ -78,91 +79,91 @@ class _MapPageState extends State<MapPage> {
             children: [
               _buildMapView(),
             ],
-        ),
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-            onPressed: _getCurrentLocation,
-            child: const Icon(Icons.my_location),
-          ),
-        );
-    }
-
-Widget _buildMapView() {
-  return Container(
-    height: 300,
-    margin: const EdgeInsets.symmetric(horizontal: 16),
-    decoration: BoxDecoration(
-      
-      color: Colors.grey[900],
-    ),
-    child: ClipRRect(
-     
-      child: Stack(
-        children: [
-          // Google Map
-          GoogleMap(
-            initialCameraPosition: const CameraPosition(
-              target: _sriLankaCenter,
-              zoom: 13, // Zoom level to show Sri Lanka
-            ),
-            onMapCreated: (GoogleMapController controller) {
-              _mapController = controller;
-            },
-            markers: {
-              if (_currentLocation != null)
-                Marker(
-                  markerId: const MarkerId("current_location"),
-                  position: _currentLocation!,
-                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-                ),
-            },
-            myLocationEnabled: true, // Enables the blue dot for user's location
-            myLocationButtonEnabled: true, // Enables the "my location" button
-          ),
-
-          // Dark shade at the top
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 80, // Adjust the height of the shade
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.6),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Dark shade at the bottom
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 80, // Adjust the height of the shade
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.6),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        onPressed: _getCurrentLocation,
+        child: const Icon(Icons.my_location),
       ),
-    ),
-  );
-}
+    );
+  }
+
+  Widget _buildMapView() {
+    return Container(
+      height: 300,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+      ),
+      child: ClipRRect(
+        child: Stack(
+          children: [
+            // Google Map
+            GoogleMap(
+              initialCameraPosition: const CameraPosition(
+                target: _sriLankaCenter,
+                zoom: 13, // Zoom level to show Sri Lanka
+              ),
+              onMapCreated: (GoogleMapController controller) {
+                _mapController = controller;
+              },
+              markers: {
+                if (_currentLocation != null)
+                  Marker(
+                    markerId: const MarkerId("current_location"),
+                    position: _currentLocation!,
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueRed),
+                  ),
+              },
+              myLocationEnabled:
+                  true, // Enables the blue dot for user's location
+              myLocationButtonEnabled: true, // Enables the "my location" button
+            ),
+
+            // Dark shade at the top
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 80, // Adjust the height of the shade
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.6),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Dark shade at the bottom
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 80, // Adjust the height of the shade
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.6),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
