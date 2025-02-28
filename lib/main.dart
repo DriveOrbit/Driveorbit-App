@@ -1,6 +1,6 @@
 import 'package:dashboard_ui/screens/vehicle_dasboard/map_page.dart';
 import 'package:flutter/material.dart';
-
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 void main() {
   runApp(const MyApp());
@@ -8,15 +8,22 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Dashboard UI',
-      theme: ThemeData(
-         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-         useMaterial3:true,
-      ),
-      home: MapPage(),
-    );// 
+    return ScreenUtilInit(
+      designSize: const Size(360, 690), // Set your design size (width, height)
+      minTextAdapt: true, // Enable text adaptation
+      builder: (context, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'DriveOrbit App',
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+          ),
+          home: const MapPage(), // Your MapPage
+        );
+      },
+    );
   }
 }
