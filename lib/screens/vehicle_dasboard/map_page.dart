@@ -30,7 +30,7 @@ class _MapPageState extends State<MapPage> {
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Location services are disabled")),
+        const SnackBar(content: Text("Location services are disabled")),
       );
       return;
     }
@@ -41,7 +41,7 @@ class _MapPageState extends State<MapPage> {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Location permissions are denied")),
+          const SnackBar(content: Text("Location permissions are denied")),
         );
         return;
       }
@@ -49,7 +49,7 @@ class _MapPageState extends State<MapPage> {
 
     if (permission == LocationPermission.deniedForever) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Location permissions are permanently denied")),
+        const SnackBar(content: Text("Location permissions are permanently denied")),
       );
       return;
     }
@@ -83,7 +83,7 @@ class _MapPageState extends State<MapPage> {
       ),
       floatingActionButton: FloatingActionButton(
             onPressed: _getCurrentLocation,
-            child: Icon(Icons.my_location),
+            child: const Icon(Icons.my_location),
           ),
         );
     }
@@ -102,7 +102,7 @@ Widget _buildMapView() {
         children: [
           // Google Map
           GoogleMap(
-            initialCameraPosition: CameraPosition(
+            initialCameraPosition: const CameraPosition(
               target: _sriLankaCenter,
               zoom: 13, // Zoom level to show Sri Lanka
             ),
@@ -112,7 +112,7 @@ Widget _buildMapView() {
             markers: {
               if (_currentLocation != null)
                 Marker(
-                  markerId: MarkerId("current_location"),
+                  markerId: const MarkerId("current_location"),
                   position: _currentLocation!,
                   icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
                 ),

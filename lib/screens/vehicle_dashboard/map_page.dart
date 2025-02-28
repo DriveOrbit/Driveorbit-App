@@ -17,7 +17,7 @@ class _MapPageState extends State<MapPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: GoogleMap(
-        initialCameraPosition: CameraPosition(
+        initialCameraPosition: const CameraPosition(
           target: _sriLankaCenter,
           zoom: 13, // Zoom level to show Sri Lanka
         ),
