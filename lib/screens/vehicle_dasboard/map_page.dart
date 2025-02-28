@@ -127,17 +127,14 @@ class _MapPageState extends State<MapPage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _getCurrentLocation,
-        child: const Icon(Icons.my_location),
-      ),
+ 
     );
   }
 
   Widget _buildMapView() {
     return Container(
       height: 300,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.only(top: 30, left: 16, right: 16), // Adjust the margin
       decoration: BoxDecoration(
         color: Colors.grey[900],
       ),
@@ -158,13 +155,11 @@ class _MapPageState extends State<MapPage> {
                   Marker(
                     markerId: const MarkerId("current_location"),
                     position: _currentLocation!,
-                    icon: BitmapDescriptor.defaultMarkerWithHue(
-                        BitmapDescriptor.hueRed),
+                    icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
                   ),
               },
-              myLocationEnabled:
-                  true, // Enables the blue dot for user's location
-              myLocationButtonEnabled: true, // Enables the "my location" button
+              myLocationEnabled:true, // Enables the red dot for user's location
+              myLocationButtonEnabled: false, // Enables the "my location" button
             ),
 
             // Dark shade at the top
@@ -173,13 +168,13 @@ class _MapPageState extends State<MapPage> {
               left: 0,
               right: 0,
               child: Container(
-                height: 80, // Adjust the height of the shade
+                height: 30, // Adjust the height of the shade
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.6),
+                      Colors.black.withOpacity(1.0),
                       Colors.transparent,
                     ],
                   ),
@@ -193,13 +188,13 @@ class _MapPageState extends State<MapPage> {
               left: 0,
               right: 0,
               child: Container(
-                height: 80, // Adjust the height of the shade
+                height: 30, // Adjust the height of the shade
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black.withOpacity(0.6),
+                      Colors.black.withOpacity(1.0),
                       Colors.transparent,
                     ],
                   ),
