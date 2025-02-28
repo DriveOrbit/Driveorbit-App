@@ -22,10 +22,10 @@ class _DriverHistoryPageState extends State<DriverHistoryPage> {
   }
 
   Future<void> _loadHistory() async {
-    final response = 
+    final response =
         await rootBundle.loadString('assets/mock_drivinghistory.json');
     final List<dynamic> decodedList = jsonDecode(response);
-    final List<DrivingHistoryEntity> history = 
+    final List<DrivingHistoryEntity> history =
         decodedList.map((item) => DrivingHistoryEntity.fromJson(item)).toList();
 
     setState(() {
