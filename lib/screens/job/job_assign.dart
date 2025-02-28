@@ -54,7 +54,23 @@ class JobCard extends StatelessWidget {
             Text(pickupLocation),
             Text(dropoffLocation),
           ],
+        ),    
+        **theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.deepPurple,
+            brightness: Brightness.light, // Light theme
+          ),
+          useMaterial3: true,
         ),
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.deepPurple,
+            brightness: Brightness.dark, // Dark theme
+          ),
+          useMaterial3: true,
+        ),
+        themeMode: ThemeMode.dark, // Set to ThemeMode.dark for dark theme
+        home: JobAssignedPage(), // Navigate to job view**
         onTap: () {
           // Navigate to detailed job view
         },
