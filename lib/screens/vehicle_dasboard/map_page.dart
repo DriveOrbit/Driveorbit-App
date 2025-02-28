@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
-
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
 
@@ -11,17 +10,18 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
-  static const LatLng _sriLankaCenter = LatLng(7.8731, 80.7718); // Sri Lanka Center
+  static const LatLng _sriLankaCenter =
+      LatLng(7.8731, 80.7718); // Sri Lanka Center
   GoogleMapController? _mapController;
   LatLng? _currentLocation;
 
-    @override
+  @override
   void initState() {
     super.initState();
     _getCurrentLocation();
   }
 
-    // Function to get current location
+  // Function to get current location
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
@@ -67,29 +67,102 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GoogleMap(
-        initialCameraPosition: CameraPosition(
-          target: _sriLankaCenter,
-          zoom: 13, // Zoom level to show Sri Lanka
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildMapView(),
+            ],
         ),
-        onMapCreated: (GoogleMapController controller) {
-          _mapController = controller;
-        },
-        markers: {
-          Marker(
-            markerId: MarkerId("current_location"),
-            position: _sriLankaCenter,
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-          ),
-        },
-        myLocationEnabled: true, // Enables the blue dot for user's location
-        myLocationButtonEnabled: true, // Enables the "my location" button
+        ),
       ),
-    );
-  }
+      floatingActionButton: FloatingActionButton(
+            onPressed: _getCurrentLocation,
+            child: Icon(Icons.my_location),
+          ),
+        );
+    }
+
+Widget _buildMapView() {
+  return Container(
+    height: 300,
+    margin: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      
+      color: Colors.grey[900],
+    ),
+    child: ClipRRect(
+     
+      child: Stack(
+        children: [
+          // Google Map
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: _sriLankaCenter,
+              zoom: 13, // Zoom level to show Sri Lanka
+            ),
+            onMapCreated: (GoogleMapController controller) {
+              _mapController = controller;
+            },
+            markers: {
+              if (_currentLocation != null)
+                Marker(
+                  markerId: MarkerId("current_location"),
+                  position: _currentLocation!,
+                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                ),
+            },
+            myLocationEnabled: true, // Enables the blue dot for user's location
+            myLocationButtonEnabled: true, // Enables the "my location" button
+          ),
+
+          // Dark shade at the top
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 80, // Adjust the height of the shade
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.6),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Dark shade at the bottom
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 80, // Adjust the height of the shade
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.6),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 }

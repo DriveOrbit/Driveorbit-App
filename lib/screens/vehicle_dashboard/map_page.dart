@@ -9,7 +9,8 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
-  static const LatLng _sriLankaCenter = LatLng(7.8731, 80.7718); // Sri Lanka Center
+  static const LatLng _sriLankaCenter =
+      LatLng(7.8731, 80.7718); // Sri Lanka Center
   late GoogleMapController mapController;
 
   @override
