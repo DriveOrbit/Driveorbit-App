@@ -1,6 +1,5 @@
-import 'package:driveorbit_app/Screens/form/page2';
 import 'package:flutter/material.dart';
-// Import your form file
+import 'package:driveorbit_app/Screens/form/page1.dart'; // Import the first page
 
 void main() {
   runApp(MyApp());
@@ -11,14 +10,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false, // Removes the debug banner
-      title: 'Form',
+      title: 'Form App',
       theme: ThemeData.dark(),
-      home: Scaffold(
-        appBar: AppBar(title: Text("Form")),
-        body: SingleChildScrollView(
-          child: MileageForm(),
-        ),
-      ),
+      home: PhotoUploadPage(), // Ensure this class exists in page1.dart
     );
   }
 }
+
+class PhotoUploadPage {}
