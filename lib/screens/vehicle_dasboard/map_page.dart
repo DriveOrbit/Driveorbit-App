@@ -77,6 +77,7 @@ class _MapPageState extends State<MapPage> {
     if (hour < 17) return 'Good Afternoon';
     return 'Good Evening';
   }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -147,8 +148,12 @@ class _MapPageState extends State<MapPage> {
                 target: _sriLankaCenter,
                 zoom: 13, // Zoom level to show Sri Lanka
               ),
-              onMapCreated: (GoogleMapController controller) {
+              onMapCreated: (GoogleMapController controller) async {
                 _mapController = controller;
+
+                // Load the dark mode style from the JSON file
+    String style = await DefaultAssetBundle.of(context).loadString('assets/maptheme/dark_theme.json');
+    _mapController?.setMapStyle(style);
               },
               markers: {
                 if (_currentLocation != null)
@@ -159,7 +164,7 @@ class _MapPageState extends State<MapPage> {
                   ),
               },
               myLocationEnabled:true, // Enables the red dot for user's location
-              myLocationButtonEnabled: false, // Enables the "my location" button
+              myLocationButtonEnabled: true, // Enables the "my location" button
             ),
 
             // Dark shade at the top
