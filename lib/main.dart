@@ -1,20 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:driveorbit_app/Screens/form/page1.dart'; // Import the first page
+import 'package:driveorbit_app/Screens/form/page1.dart';
+import 'package:driveorbit_app/Screens/form/page2.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // Removes the debug banner
-      title: 'Form App',
-      theme: ThemeData.dark(),
-      home: PhotoUploadPage(), // Ensure this class exists in page1.dart
+      debugShowCheckedModeBanner: false,
+      title: 'DriveOrbit',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => PhotoUploadPage(),
+        '/mileage': (context) => MileageForm(),
+      },
     );
   }
 }
-
-class PhotoUploadPage {}
