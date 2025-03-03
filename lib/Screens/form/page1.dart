@@ -13,36 +13,89 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("First Page"),
-      ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Instruction Text
-            Text(
-              "Enter your details",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
+            RichText(
+              textAlign: TextAlign.left,
+              text: const TextSpan(
+                children: [
+                  TextSpan(
+                    text: "upload 4 side",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6D6BF8),
+                    ),
+                  ),
+                  TextSpan(
+                    text: " pictures\n", // Move "current" here and add newline
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF54C1D5),
+                    ),
+                  ),
+                  TextSpan(
+                    text: "of the vehicle",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF54C1D5),
+                    ),
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 20),
 
-            // Input Field
-            TextField(
-              controller: _inputController,
-              decoration: InputDecoration(
-                hintText: "Enter something here",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+            SizedBox(height: 40),
+
+            // Clickable "Take a Photo" Section
+            GestureDetector(
+              onTap: () {
+                // Implement camera functionality here
+              },
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.camera_alt, color: Colors.black),
+                    SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Tap",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          "Please take clear photos",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
-            SizedBox(height: 20),
+
+            SizedBox(height: 350),
 
             // Next Button
             Center(
@@ -58,7 +111,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
               ),

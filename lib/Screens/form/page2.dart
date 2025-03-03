@@ -13,9 +13,7 @@ class _MileageFormState extends State<MileageForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Mileage Form"),
-      ),
+       
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
         child: Column(
@@ -24,7 +22,7 @@ class _MileageFormState extends State<MileageForm> {
             // Clickable Mileage Input
             RichText(
               textAlign: TextAlign.left,
-              text: TextSpan(
+              text: const TextSpan(
                 children: [
                   TextSpan(
                     text: "Enter your ",
@@ -71,7 +69,7 @@ class _MileageFormState extends State<MileageForm> {
                   controller: mileageController,
                   keyboardType: TextInputType.number,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: "Enter mileage here",
                     hintStyle: TextStyle(color: Colors.black54),
                     border: InputBorder.none,
@@ -94,7 +92,7 @@ class _MileageFormState extends State<MileageForm> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.camera_alt, color: Colors.black),
@@ -129,7 +127,7 @@ class _MileageFormState extends State<MileageForm> {
             // Fuel Status Question
             RichText(
               textAlign: TextAlign.left,
-              text: TextSpan(
+              text: const TextSpan(
                 children: [
                   TextSpan(
                     text: "What is your ",
@@ -159,7 +157,7 @@ class _MileageFormState extends State<MileageForm> {
               ),
             ),
 
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
 
             // Fuel Status Selector
             Row(
@@ -170,7 +168,7 @@ class _MileageFormState extends State<MileageForm> {
               ],
             ),
 
-            SizedBox(height: 30),
+            SizedBox(height: 180),
 
             // Next button
             Align(
