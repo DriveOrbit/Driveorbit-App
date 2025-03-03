@@ -1,0 +1,36 @@
+[
+    {
+      "historyId": "H001",
+      "date": "2024-11-11",
+      "vehicleModel": "Nissan Sunny (1997)",
+      "vehicleNumber": "KY-7766",
+      "distance": 157.0,
+      "duration": 120,
+      "startLocation": "Colombo City Center",
+      "vehicleType": "Car",
+
+      "endLocation": "Katunayake Airport"
+    },
+    {
+      "historyId": "H002",
+      "date": "2024-11-10",
+      "vehicleModel": "Toyota Hilux (2005)",
+      "vehicleNumber": "KY-1234",
+      "distance": 89.5,
+      "duration": 90,
+      "startLocation": "Galle Fort",
+      "vehicleType": "Van",
+
+      "endLocation": "Mirissa Harbor"
+    },
+    {
+      "historyId": "H003",
+      "date": "2024-11-09",
+      "vehicleModel": "Ford Explorer (2018)",
+      "vehicleNumber": "KY-9101",
+      "distance": 45.2,
+      "duration": 60,
+      "startLocation": "Kandy City",
+      "endLocation": "Peradeniya Botanical Garden"
+    }
+  ]

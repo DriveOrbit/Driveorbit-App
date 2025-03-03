@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_otp_text_field/flutter_otp_text_field.dart';
 import 'package:slide_countdown/slide_countdown.dart';
-import 'auth_controller.dart'; // Import the auth_controller
 
 class OtpPage extends StatefulWidget {
   const OtpPage({super.key});
