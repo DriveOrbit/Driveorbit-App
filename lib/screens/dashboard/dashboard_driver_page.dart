@@ -106,45 +106,45 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
     });
   }
 
-  @override
+   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-          backgroundColor: Colors.black,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Flexible(
-                // Add Flexible wrapper
-                child: RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '${getGreeting()}, ',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF6D6BF8),
-                          fontSize: 22.sp,
-                        ),
+        backgroundColor: Colors.black,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Flexible(
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '${getGreeting()}, ',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF6D6BF8),
+                        fontSize: 22.sp,
                       ),
-                      const TextSpan(
-                        text: 'Chandeera!',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
+                    ),
+                    const TextSpan(
+                      text: 'Chandeera!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 9),
-              const CircleAvatar(
-                backgroundImage: AssetImage('assets/chandeera.jpg'),
-              ),
-            ],
-          )),
+            ),
+            const SizedBox(width: 9),
+            const CircleAvatar(
+              backgroundImage: AssetImage('assets/chandeera.jpg'),
+            ),
+          ],
+        ),
+      ),
       body: Column(
         children: [
           // Main Scrollable Content
@@ -158,7 +158,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                   floating: true,
                   automaticallyImplyLeading: false,
                   backgroundColor: Colors.black,
-                  toolbarHeight: 75.h, // 70,
+                  toolbarHeight: 75.h,
                   title: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 1),
                     child: Row(
@@ -169,16 +169,14 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                             decoration: InputDecoration(
                               hintText: 'Search vehicles...',
                               hintStyle: const TextStyle(color: Colors.grey),
-                              prefixIcon:
-                                  const Icon(Icons.search, color: Colors.grey),
+                              prefixIcon: const Icon(Icons.search, color: Colors.grey),
                               filled: true,
                               fillColor: Colors.grey[900],
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 borderSide: BorderSide.none,
                               ),
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                             style: const TextStyle(color: Colors.white),
                             onChanged: (value) {
@@ -222,8 +220,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                 });
                               },
                               dropdownColor: Colors.grey[900],
-                              icon: const Icon(Icons.arrow_drop_down,
-                                  color: Colors.white),
+                              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
                               underline: Container(),
                               isExpanded: true,
                             ),
@@ -254,8 +251,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                         Container(
                                           width: 16,
                                           height: 16,
-                                          margin:
-                                              const EdgeInsets.only(right: 8),
+                                          margin: const EdgeInsets.only(right: 8),
                                           decoration: BoxDecoration(
                                             color: _getStatusColor(value),
                                             shape: BoxShape.circle,
@@ -280,8 +276,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                 });
                               },
                               dropdownColor: Colors.grey[900],
-                              icon: const Icon(Icons.arrow_drop_down,
-                                  color: Colors.white),
+                              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
                               underline: Container(),
                               isExpanded: true,
                             ),
@@ -298,17 +293,12 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: const <Color>[
-                          Colors.transparent, // Start with transparent
-                          Colors.red, // Fade to red
-                          Colors.red, // Stay red
-                          Colors.transparent, // Fade back to transparent
+                          Colors.transparent,
+                          Colors.red,
+                          Colors.red,
+                          Colors.transparent,
                         ],
-                        stops: [
-                          0.0,
-                          0.01,
-                          (!_isExpanded) ? 0.7 : 0.9,
-                          1.0
-                        ], // Adjust stops for a smaller fade area
+                        stops: [0.0, 0.01, (!_isExpanded) ? 0.7 : 0.9, 1.0],
                       ).createShader(rect);
                     },
                     blendMode: BlendMode.dstIn,
@@ -326,28 +316,6 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                     ),
                   ),
                 ),
-                /* SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      return ShaderMask(
-                          shaderCallback: (Rect rect) {
-                            return LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: <Color>[Colors.transparent, Colors.red],
-                            ).createShader(rect);
-                          },
-                          blendMode: BlendMode.dstIn,
-                          child:
-                              VehicleDetails(entity: _filteredMessages[index]));
-                    },
-                    childCount: _isExpanded
-                        ? _filteredMessages.length
-                        : _filteredMessages.length > _initialVehicleCount
-                            ? _initialVehicleCount
-                            : _filteredMessages.length,
-                  ),
-                ), */
                 if (_isExpanded)
                   SliverToBoxAdapter(
                     child: _messages.length > _initialVehicleCount
@@ -363,8 +331,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                       if (_isExpanded) {
                                         _scrollController.animateTo(
                                           0,
-                                          duration:
-                                              const Duration(milliseconds: 300),
+                                          duration: const Duration(milliseconds: 300),
                                           curve: Curves.easeInOut,
                                         );
                                       }
@@ -375,8 +342,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(20),
-                                      side: const BorderSide(
-                                          color: Colors.white24),
+                                      side: const BorderSide(color: Colors.white24),
                                     ),
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 16, vertical: 13),
@@ -391,49 +357,6 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                           )
                         : const SizedBox.shrink(),
                   ),
-                /* SliverToBoxAdapter(
-                  child: _messages.length > _initialVehicleCount
-                      ? Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _isExpanded = !_isExpanded;
-                                    if (_isExpanded) {
-                                      _scrollController.animateTo(
-                                        0,
-                                        duration:
-                                            const Duration(milliseconds: 300),
-                                        curve: Curves.easeInOut,
-                                      );
-                                    }
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey[900],
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    side:
-                                        const BorderSide(color: Colors.white24),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 13),
-                                ),
-                                child: Text(
-                                  _isExpanded ? 'Show Less' : 'Show More',
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
- */
               ],
             ),
           ),
@@ -442,51 +365,47 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
           if (!_isExpanded)
             Container(
               color: Colors.black,
-              padding: const EdgeInsets.all(66),
+              padding: const EdgeInsets.all(16), // Adjusted padding
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  (_messages.length > _initialVehicleCount)
-                      ? Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _isExpanded = !_isExpanded;
-                                    if (_isExpanded) {
-                                      _scrollController.animateTo(
-                                        0,
-                                        duration:
-                                            const Duration(milliseconds: 300),
-                                        curve: Curves.easeInOut,
-                                      );
-                                    }
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey[900],
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    side:
-                                        const BorderSide(color: Colors.white24),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 13),
-                                ),
-                                child: Text(
-                                  _isExpanded ? 'Show Less' : 'Show More',
-                                  style: const TextStyle(fontSize: 14),
-                                ),
+                  if (_messages.length > _initialVehicleCount)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _isExpanded = !_isExpanded;
+                                if (_isExpanded) {
+                                  _scrollController.animateTo(
+                                    0,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                  );
+                                }
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[900],
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: const BorderSide(color: Colors.white24),
                               ),
-                            ],
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 13),
+                            ),
+                            child: Text(
+                              _isExpanded ? 'Show Less' : 'Show More',
+                              style: const TextStyle(fontSize: 14),
+                            ),
                           ),
-                        )
-                      : const SizedBox.shrink(),
-
+                        ],
+                      ),
+                    ),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -513,8 +432,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 60), // Reduced Spacer
-
+                  const SizedBox(height: 16), // Adjusted spacing
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -558,8 +476,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                 _driverStatus,
                                 style: const TextStyle(color: Colors.white),
                               ),
-                              const Icon(Icons.arrow_drop_down,
-                                  color: Colors.white),
+                              const Icon(Icons.arrow_drop_down, color: Colors.white),
                             ],
                           ),
                         ),
@@ -567,8 +484,6 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
-                  // Adjusted QR code scanner button to bottom center
                   Center(
                     child: IconButton(
                       icon: const Icon(
