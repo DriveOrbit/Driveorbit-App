@@ -30,23 +30,23 @@ class _JobAssignedPageState extends State<JobAssignedPage> {
   }
 }
 
-class vehicle_id {
-  final String vehicle_id;
-  final String vehicle_type;
-  final String vehicle_model;
-  final String vehicle_number;
-  final String vehicle_color;
-  final String vehicle_capacity;
-  final String vehicle_status;
+class VehicleId {
+  final String vehicleId;
+  final String vehicleType;
+  final String vehicleModel;
+  final String vehicleNumber;
+  final String vehicleColor;
+  final String vehicleCapacity;
+  final String vehicleStatus;
 
-  vehicle_id({
-    required this.vehicle_id,
-    required this.vehicle_type,
-    required this.vehicle_model,
-    required this.vehicle_number,
-    required this.vehicle_color,
-    required this.vehicle_capacity,
-    required this.vehicle_status,
+  vehicleId({
+    required this.vehicleId,
+    required this.vehicleType,
+    required this.vehicleModel,
+    required this.vehicleNumber,
+    required this.vehicleColor,
+    required this.vehicleCapacity,
+    required this.vehicleStatus,
   });
 }
 
@@ -74,7 +74,7 @@ class JobCard extends StatelessWidget {
             Text(pickupLocation),
             Text(dropoffLocation),
           ],
-        ),    
+        ),
         onTap: () {
           // Navigate to detailed job view
         },
