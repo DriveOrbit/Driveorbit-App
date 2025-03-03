@@ -155,16 +155,9 @@ class _MapPageState extends State<MapPage> {
     String style = await DefaultAssetBundle.of(context).loadString('assets/maptheme/dark_theme.json');
     _mapController?.setMapStyle(style);
               },
-              markers: {
-                if (_currentLocation != null)
-                  Marker(
-                    markerId: const MarkerId("current_location"),
-                    position: _currentLocation!,
-                    icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-                  ),
-              },
-              myLocationEnabled:true, // Enables the red dot for user's location
-              myLocationButtonEnabled: true, // Enables the "my location" button
+              
+              myLocationEnabled:true, // Enables the blue dot for user's location
+              myLocationButtonEnabled: false, // Enables the "my location" button
             ),
 
             // Dark shade at the top
