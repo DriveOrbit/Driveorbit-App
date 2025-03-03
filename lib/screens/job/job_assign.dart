@@ -67,12 +67,13 @@ class JobCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.all(8.0),
       child: ListTile(
+        leading: Icon(Icons.work), //adding an icon for jobs
         title: Text(jobTime),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(pickupLocation),
-            Text(dropoffLocation),
+            Row(children:[Icon(Icons.location_on,SizedBox(width:5),Text(pickupLocation)]),
+            Row(children:[Icon(Icons.flag),SizedBox(width:5),Text(dropoffLocation)]),
           ],
         ),
         onTap: () {
