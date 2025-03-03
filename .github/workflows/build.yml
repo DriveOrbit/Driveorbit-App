@@ -16,15 +16,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v2.5.0
         with:
-          channel: "stable"
+          channel: 'stable'
 
       - name: Cache Flutter Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v2
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.yaml') }}
@@ -48,15 +48,15 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v2.5.0
         with:
-          channel: "stable"
+          channel: 'stable'
 
       - name: Cache Flutter dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v2
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-flutter-deps-${{ hashFiles('**/pubspec.yaml') }}
