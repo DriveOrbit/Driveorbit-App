@@ -1,0 +1,2 @@
+/Users/sachinthasithuruwan/Documents/Driveorbit/driveorbit_app/android/app/.cxx/RelWithDebInfo/4z2oj39f/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/sachinthasithuruwan/Documents/Driveorbit/driveorbit_app/android/app/.cxx/RelWithDebInfo/4z2oj39f/arm64-v8a/CMakeFiles/rebuild_cache.dir

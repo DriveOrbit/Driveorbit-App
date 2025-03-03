@@ -580,7 +580,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const QRScannerPage()),
+                              builder: (context) => const ScanCodePage()),
                         );
                       },
                     ),
