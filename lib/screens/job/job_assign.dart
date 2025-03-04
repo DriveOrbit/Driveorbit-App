@@ -14,17 +14,26 @@ class _JobAssignedPageState extends State<JobAssignedPage> {
 
   @override
   Widget build(BuildContext context) {
+    List<Map<String, String>> jobs = [
+      {
+        'time': '10:30',
+        'pickup': 'Main Office (Resort)',
+        'dropoff': 'Galle Face'
+      },
+      {'time': '09:30', 'pickup': 'Bandaranaike Airport', 'dropoff': 'Hotel'}
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your Jobs'),
       ),
       body: ListView.builder(
-        itemCount: 10, // Replace with actual job count
+        itemCount: jobs.length,
         itemBuilder: (context, index) {
           return JobCard(
-            jobTime: '10:30',
-            pickupLocation: 'Main Office (Lesson)',
-            dropoffLocation: 'Galle Face',
+            jobTime: jobs[index]['time']!,
+            pickupLocation: jobs[index]['pickup']!,
+            dropoffLocation: jobs[index]['dropoff']!,
           );
         },
       ),
