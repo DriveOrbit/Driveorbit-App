@@ -31,8 +31,11 @@ class JobCard extends StatelessWidget {
           ],
         ),
         onTap: () {
-          // Navigate to detailed job view
-        },
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => JobDetailPage(jobTime: jobTime, pickupLocation: pickupLocation, dropoffLocation: dropoffLocation)),
+          );
+        },  // Navigate to detailed job view
       ),
     );
   }
