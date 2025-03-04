@@ -13,7 +13,10 @@ class _MileageFormState extends State<MileageForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       
+      appBar: AppBar(
+        title: Text("FORM"),
+        titleSpacing: 0,
+      ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
         child: Column(

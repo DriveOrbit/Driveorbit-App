@@ -13,6 +13,10 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title:Text("FORM"),
+        titleSpacing: 0,
+      ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         child: Column(
