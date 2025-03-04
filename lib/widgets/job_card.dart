@@ -15,6 +15,10 @@ class JobCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      elevation: 4,
       margin: const EdgeInsets.all(8.0),
       child: ListTile(
         leading: Icon(Icons.work), //adding an icon for jobs
