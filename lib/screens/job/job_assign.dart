@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:driveorbit_app/models/vehicle_model.dart';
+
 
 class JobAssignedPage extends StatefulWidget {
   const JobAssignedPage({super.key});
