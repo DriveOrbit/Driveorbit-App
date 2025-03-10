@@ -78,9 +78,9 @@ class _OtpPageState extends State<OtpPage> {
               if (_apiMessage != null)
                 Text(
                   _apiMessage!,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
-                    color: const Color.fromARGB(172, 172, 172, 172),
+                    color: Color.fromARGB(172, 172, 172, 172),
                   ),
                 ),
               const SizedBox(height: 10),
@@ -130,7 +130,7 @@ class _OtpPageState extends State<OtpPage> {
                       ),
                     ),
                   ),
-                  SlideCountdownSeparated(
+                  const SlideCountdownSeparated(
                     duration: Duration(minutes: 2),
                     separatorStyle: TextStyle(
                       color: Colors.white,

@@ -106,7 +106,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
     });
   }
 
-   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
@@ -169,14 +169,16 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                             decoration: InputDecoration(
                               hintText: 'Search vehicles...',
                               hintStyle: const TextStyle(color: Colors.grey),
-                              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                              prefixIcon:
+                                  const Icon(Icons.search, color: Colors.grey),
                               filled: true,
                               fillColor: Colors.grey[900],
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 borderSide: BorderSide.none,
                               ),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 12),
                             ),
                             style: const TextStyle(color: Colors.white),
                             onChanged: (value) {
@@ -220,7 +222,8 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                 });
                               },
                               dropdownColor: Colors.grey[900],
-                              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                              icon: const Icon(Icons.arrow_drop_down,
+                                  color: Colors.white),
                               underline: Container(),
                               isExpanded: true,
                             ),
@@ -251,7 +254,8 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                         Container(
                                           width: 16,
                                           height: 16,
-                                          margin: const EdgeInsets.only(right: 8),
+                                          margin:
+                                              const EdgeInsets.only(right: 8),
                                           decoration: BoxDecoration(
                                             color: _getStatusColor(value),
                                             shape: BoxShape.circle,
@@ -276,7 +280,8 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                 });
                               },
                               dropdownColor: Colors.grey[900],
-                              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                              icon: const Icon(Icons.arrow_drop_down,
+                                  color: Colors.white),
                               underline: Container(),
                               isExpanded: true,
                             ),
@@ -324,32 +329,38 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                ElevatedButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _isExpanded = !_isExpanded;
-                                      if (_isExpanded) {
-                                        _scrollController.animateTo(
-                                          0,
-                                          duration: const Duration(milliseconds: 300),
-                                          curve: Curves.easeInOut,
-                                        );
-                                      }
-                                    });
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey[900],
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                      side: const BorderSide(color: Colors.white24),
+                                SizedBox(
+                                  height: ScreenUtil().screenHeight * 0.05,
+                                  width: ScreenUtil().screenWidth * 0.3,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _isExpanded = !_isExpanded;
+                                        if (_isExpanded) {
+                                          _scrollController.animateTo(
+                                            0,
+                                            duration: const Duration(
+                                                milliseconds: 300),
+                                            curve: Curves.easeInOut,
+                                          );
+                                        }
+                                      });
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.grey[900],
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                        side: const BorderSide(
+                                            color: Colors.white24),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 13),
                                     ),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 13),
-                                  ),
-                                  child: Text(
-                                    _isExpanded ? 'Show Less' : 'Show More',
-                                    style: const TextStyle(fontSize: 14),
+                                    child: Text(
+                                      _isExpanded ? 'Show Less' : 'Show More',
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -375,32 +386,37 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _isExpanded = !_isExpanded;
-                                if (_isExpanded) {
-                                  _scrollController.animateTo(
-                                    0,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut,
-                                  );
-                                }
-                              });
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey[900],
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                side: const BorderSide(color: Colors.white24),
+                          SizedBox(
+                            height: ScreenUtil().screenHeight * 0.05,
+                            width: ScreenUtil().screenWidth * 0.3,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _isExpanded = !_isExpanded;
+                                  if (_isExpanded) {
+                                    _scrollController.animateTo(
+                                      0,
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      curve: Curves.easeInOut,
+                                    );
+                                  }
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey[900],
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: const BorderSide(color: Colors.white24),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 13),
                               ),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 13),
-                            ),
-                            child: Text(
-                              _isExpanded ? 'Show Less' : 'Show More',
-                              style: const TextStyle(fontSize: 14),
+                              child: Text(
+                                _isExpanded ? 'Show Less' : 'Show More',
+                                style: const TextStyle(fontSize: 14),
+                              ),
                             ),
                           ),
                         ],
@@ -476,7 +492,8 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                 _driverStatus,
                                 style: const TextStyle(color: Colors.white),
                               ),
-                              const Icon(Icons.arrow_drop_down, color: Colors.white),
+                              const Icon(Icons.arrow_drop_down,
+                                  color: Colors.white),
                             ],
                           ),
                         ),
