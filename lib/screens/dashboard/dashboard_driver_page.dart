@@ -348,18 +348,19 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.grey[900],
-                                      foregroundColor: Colors.white,
+                                      foregroundColor: const Color.fromARGB(
+                                          255, 255, 255, 255),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
+                                        borderRadius: BorderRadius.circular(40),
                                         side: const BorderSide(
                                             color: Colors.white24),
                                       ),
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 13),
+                                          vertical: 7, horizontal: 16),
                                     ),
                                     child: Text(
                                       _isExpanded ? 'Show Less' : 'Show More',
-                                      style: const TextStyle(fontSize: 14),
+                                      style: TextStyle(fontSize: 15.sp),
                                     ),
                                   ),
                                 ),
@@ -376,13 +377,24 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
           if (!_isExpanded)
             Container(
               color: Colors.black,
-              padding: const EdgeInsets.all(16), // Adjusted padding
+              padding: EdgeInsets.only(
+                // Adjusted padding
+                left: 16.w,
+                right: 16.w,
+                bottom: 52.h,
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   if (_messages.length > _initialVehicleCount)
                     Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.only(
+                        // Adjusted button padding
+                        top: 4.h, // Reduced top spacing
+                        bottom: 40.h,
+                        left: 8.w,
+                        right: 10.w,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -407,15 +419,15 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                 backgroundColor: Colors.grey[900],
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(40),
                                   side: const BorderSide(color: Colors.white24),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 13),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 16.h, vertical: 12.w),
                               ),
                               child: Text(
                                 _isExpanded ? 'Show Less' : 'Show More',
-                                style: const TextStyle(fontSize: 14),
+                                style: TextStyle(fontSize: 15.sp),
                               ),
                             ),
                           ),
@@ -448,7 +460,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16), // Adjusted spacing
+                  const SizedBox(height: 32), // Adjusted spacing
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -500,21 +512,24 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 32),
                   Center(
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.qr_code_scanner,
-                        size: 36,
-                        color: Colors.white,
+                    child: Container(
+                      child: IconButton(
+                        icon: Image.asset(
+                          'assets/icons/qr_scanner.png',
+                          width: 66.w, // Responsive width
+                          height: 66.h, // Responsive height
+                          color: Colors.white, // Optional: tint color
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const ScanCodePage()),
+                          );
+                        },
                       ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const ScanCodePage()),
-                        );
-                      },
                     ),
                   ),
                 ],
