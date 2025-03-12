@@ -1,12 +1,15 @@
 import 'package:driveorbit_app/screens/dashboard/dashboard_driver_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/auth/forgot_password_page.dart';
 import 'screens/auth/otp_page.dart';
 import 'app/theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 

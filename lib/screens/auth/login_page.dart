@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth_controller.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -10,7 +10,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _obscureText = true;
-  final TextEditingController _userIdController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String? _errorMessage;
 
@@ -20,22 +20,38 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  Future<void> _handleLogin() async {
-    final userId = _userIdController.text;
-    final password = _passwordController.text;
 
-    final result = await login(userId, password);
 
-    if (result != null && result.startsWith('ey')) {
-      // Token received, navigate to the dashboard
-      Navigator.pushNamed(context, '/dashboard');
-    } else {
-      // Display error message
-      setState(() {
-        _errorMessage = result;
-      });
-    }
+Future<String?> login(String email, String password) async {
+  try {
+    UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    return userCredential.user?.uid;
+  } on FirebaseAuthException catch (e) {
+    debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
+    return _getFirebaseAuthErrorMessage(e.code); // Return a user-friendly error message
+  } catch (e) {
+    debugPrint('Unknown Error: $e'); 
+    return 'An unexpected error occurred. Please try again later.';
   }
+}
+
+String _getFirebaseAuthErrorMessage(String code) {
+  switch (code) {
+    case 'invalid-email':
+      return 'The email address is not valid.';
+    case 'user-disabled':
+      return 'This user account has been disabled.';
+    case 'user-not-found':
+      return 'No user found for this email.';
+    case 'wrong-password':
+      return 'Incorrect password. Please try again.';
+    default:
+      return 'Authentication failed. Please check your credentials.';
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +71,7 @@ class _LoginPageState extends State<LoginPage> {
                       style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF54C1D5), // Set color for 'Empower'
+                        color: Color(0xFF54C1D5),
                       ),
                     ),
                     TextSpan(
@@ -63,8 +79,7 @@ class _LoginPageState extends State<LoginPage> {
                       style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w500,
-                        color: Color(
-                            0xFF5B59A1), // Set color for 'Your Fleet,\nElevate Your Edge'
+                        color: Color(0xFF5B59A1),
                       ),
                     ),
                   ],
@@ -73,21 +88,20 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 70),
               const Text(
-                'Enter your company ID to get started:',
+                'Enter your email to get started:',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors
-                      .white, // Set text color to white for dark background
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 10),
               SizedBox(
-                width: double.infinity, // Set the width to fill the parent
-                height: 40, // Set the desired height
+                width: double.infinity,
+                height: 40,
                 child: TextField(
-                  controller: _userIdController,
+                  controller: _emailController,
                   decoration: InputDecoration(
-                    labelText: 'Company ID',
+                    labelText: 'Email',
                     labelStyle: const TextStyle(
                       fontSize: 14,
                       color: Color.fromARGB(178, 255, 255, 255),
@@ -153,7 +167,15 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _handleLogin,
+                onPressed: () async {
+                  String? result = await login(
+                    _emailController.text,
+                    _passwordController.text,
+                  );
+                  setState(() {
+                    _errorMessage = result;
+                  });
+                },
                 style: ElevatedButton.styleFrom(
                   side: const BorderSide(
                     color: Color.fromARGB(27, 255, 255, 255),
@@ -172,7 +194,7 @@ class _LoginPageState extends State<LoginPage> {
                   style: const TextStyle(color: Colors.red),
                 ),
               Row(
-                mainAxisAlignment: MainAxisAlignment.end, // Align to the right
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth_controller.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -9,30 +9,20 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
-  final TextEditingController _userIdController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   String? _errorMessage;
 
-  Future<void> _sendUserId() async {
-    final userId = _userIdController.text;
+  Future<void> _sendPasswordResetEmail() async {
+    final email = _emailController.text;
 
     try {
-      final response = await sendUserId(userId); // Call the sendUserId function
-      final statusCode = response['statusCode'];
-      final responseMessage = response['body'];
-
-      if (statusCode == 200) {
-        // Navigate to the OTP page with the user ID
-        Navigator.pushNamed(context, '/otp', arguments: userId);
-      } else {
-        // Display error message
-        setState(() {
-          _errorMessage = responseMessage;
-        });
-      }
-    } catch (e) {
-      // Display error message
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = 'Password reset email sent';
+      });
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = e.message;
       });
     }
   }
@@ -74,10 +64,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 width: double.infinity,
                 height: 40,
                 child: TextField(
-                  controller: _userIdController,
+                  controller: _emailController,
                   textAlign: TextAlign.center,
                   decoration: const InputDecoration(
-                    hintText: 'Enter your company ID',
+                    hintText: 'Enter your email',
                     hintStyle: TextStyle(
                       fontSize: 14,
                       color: Color.fromARGB(139, 238, 236, 236),
@@ -100,7 +90,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _sendUserId,
+                onPressed: _sendPasswordResetEmail,
                 style: ElevatedButton.styleFrom(
                   foregroundColor: const Color.fromARGB(186, 255, 255, 255),
                   backgroundColor: const Color.fromARGB(16, 255, 255, 255),
