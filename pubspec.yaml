@@ -2,7 +2,7 @@ name: driveorbit_app
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using flutter pub publish. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -42,6 +42,7 @@ dependencies:
   mobile_scanner: ^6.0.6
   pretty_qr_code: ^3.3.0
   flutter_launcher_icons: ^0.14.3
+  flutter_svg: ^2.0.7
 
 dev_dependencies:
   flutter_test:
@@ -59,7 +60,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -74,8 +74,6 @@ flutter_icons:
   android: true
   ios: true
   image_path: "assets/logo/Driveorbitlogo.png"
-  adaptive_icon_background: "#FFFFFF"  # Change to match your theme
+  adaptive_icon_background: "#FFFFFF" # Change to match your theme
   adaptive_icon_foreground: "assets/logo/Driveorbitlogo.png"
   min_sdk_android: 21
-
-

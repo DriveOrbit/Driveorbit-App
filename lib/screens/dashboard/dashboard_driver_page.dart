@@ -7,6 +7,7 @@ import 'package:driveorbit_app/widgets/vehicle_details.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class DashboardDriverPage extends StatefulWidget {
@@ -164,23 +165,54 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                     child: Row(
                       children: [
                         Expanded(
-                          flex: 5,
+                          flex: 6,
                           child: TextField(
                             decoration: InputDecoration(
-                              hintText: 'Search vehicles...',
-                              hintStyle: const TextStyle(color: Colors.grey),
-                              prefixIcon:
-                                  const Icon(Icons.search, color: Colors.grey),
+                              hintText: 'Search a vehicle', // Updated hint text
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade400,
+                                fontSize: 16
+                                    .sp, // Adjust font size to match your design
+                              ),
+                              prefixIcon: Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 12, right: 8),
+                                child: Icon(
+                                  Icons.search, // Or use custom icon asset
+                                  color: Colors.grey.shade400,
+                                  size: 24.w,
+                                ),
+                              ),
                               filled: true,
-                              fillColor: Colors.grey[900],
+                              fillColor: Colors.grey.shade900,
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(
+                                    30), // More rounded corners
                                 borderSide: BorderSide.none,
                               ),
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 12),
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 14.h, horizontal: 16.w),
+                              // Add clear button
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(
+                                        Icons.clear,
+                                        color: Colors.grey.shade400,
+                                        size: 20.w,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _searchQuery = '';
+                                          _applyFilters();
+                                        });
+                                      },
+                                    )
+                                  : null,
                             ),
-                            style: const TextStyle(color: Colors.white),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.sp,
+                            ),
                             onChanged: (value) {
                               setState(() {
                                 _searchQuery = value;
@@ -189,14 +221,14 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                             },
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(
                           flex: 2,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
                               color: Colors.grey[900],
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(30),
                             ),
                             child: DropdownButton<String>(
                               value: _selectedTypeFilter,
@@ -222,8 +254,14 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                 });
                               },
                               dropdownColor: Colors.grey[900],
-                              icon: const Icon(Icons.arrow_drop_down,
-                                  color: Colors.white),
+                              icon: SvgPicture.asset(
+                                'assets/icons/Dropdown.svg', // Path to your SVG icon
+                                width: 24, // Adjust as needed
+                                height: 24, // Adjust as needed
+                                colorFilter: const ColorFilter.mode(
+                                    Colors.white,
+                                    BlendMode.srcIn), // Tint for SVG
+                              ),
                               underline: Container(),
                               isExpanded: true,
                             ),
@@ -236,7 +274,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
                               color: Colors.grey[900],
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(30),
                             ),
                             child: DropdownButton<String>(
                               value: _selectedStatusFilter,
@@ -280,8 +318,14 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                                 });
                               },
                               dropdownColor: Colors.grey[900],
-                              icon: const Icon(Icons.arrow_drop_down,
-                                  color: Colors.white),
+                              icon: SvgPicture.asset(
+                                'assets/icons/Dropdown.svg', // Path to your SVG icon
+                                width: 24, // Adjust as needed
+                                height: 24, // Adjust as needed
+                                colorFilter: const ColorFilter.mode(
+                                    Colors.white,
+                                    BlendMode.srcIn), // Tint for SVG
+                              ),
                               underline: Container(),
                               isExpanded: true,
                             ),
