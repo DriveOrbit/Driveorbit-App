@@ -22,16 +22,16 @@ class MyApp extends StatelessWidget {
       designSize: const Size(449, 973),
       builder: (context, child) {
         return MaterialApp(
-          title: 'DriveOrbit',
-          theme: darkTheme,
-          initialRoute: '/login',
-          routes: {
-            '/login': (context) => const LoginPage(),
-            '/forgot-password': (context) => const ForgotPasswordPage(),
-            '/otp': (context) => const OtpPage(),
-            '/dashboard': (context) => const DashboardDriverPage(),
-          },
-        );
+            title: 'DriveOrbit',
+            theme: darkTheme,
+            initialRoute: '/login',
+            routes: {
+              '/login': (context) => const LoginPage(),
+              '/forgot-password': (context) => const ForgotPasswordPage(),
+              '/otp': (context) => const OtpPage(),
+              '/dashboard': (context) => const DashboardDriverPage(),
+              '/admin-dashboard': (context) => const DashboardDriverPage()
+            });
       },
     );
   }

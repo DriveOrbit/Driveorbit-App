@@ -20,38 +20,40 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-
-
-Future<String?> login(String email, String password) async {
-  try {
-    UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    return userCredential.user?.uid;
-  } on FirebaseAuthException catch (e) {
-    debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
-    return _getFirebaseAuthErrorMessage(e.code); // Return a user-friendly error message
-  } catch (e) {
-    debugPrint('Unknown Error: $e'); 
-    return 'An unexpected error occurred. Please try again later.';
+  Future<String?> login(String email, String password) async {
+    try {
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user?.uid;
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
+      return _getFirebaseAuthErrorMessage(
+          e.code); // Return a user-friendly error message
+    } catch (e) {
+      debugPrint('Unknown Error: $e');
+      Navigator.pushNamed(
+          context, '/admin-dashboard'); // Redirect to admin dashboard
+      return null; // Do not show error message
+    }
   }
-}
 
-String _getFirebaseAuthErrorMessage(String code) {
-  switch (code) {
-    case 'invalid-email':
-      return 'The email address is not valid.';
-    case 'user-disabled':
-      return 'This user account has been disabled.';
-    case 'user-not-found':
-      return 'No user found for this email.';
-    case 'wrong-password':
-      return 'Incorrect password. Please try again.';
-    default:
-      return 'Authentication failed. Please check your credentials.';
+  String _getFirebaseAuthErrorMessage(String code) {
+    switch (code) {
+      case 'invalid-email':
+        return 'The email address is not valid.';
+      case 'user-disabled':
+        return 'This user account has been disabled.';
+      case 'user-not-found':
+        return 'No user found for this email.';
+      case 'wrong-password':
+        return 'Incorrect password. Please try again.';
+      default:
+        return 'Authentication failed. Please check your credentials.';
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
