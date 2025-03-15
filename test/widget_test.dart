@@ -16,7 +16,8 @@ void main() {
     endLocation: 'Katunayake Airport',
   );
 
-  testWidgets('JobCard renders correctly with given data', (WidgetTester tester) async {
+  testWidgets('JobCard renders correctly with given data',
+      (WidgetTester tester) async {
     // Build the JobCard widget
     await tester.pumpWidget(
       MaterialApp(
@@ -27,10 +28,14 @@ void main() {
     );
 
     // Verify the date is displayed correctly
-    expect(find.text(DateFormat('MMM dd, yyyy').format(testJob.date)), findsOneWidget);
+    expect(find.text(DateFormat('MMM dd, yyyy').format(testJob.date)),
+        findsOneWidget);
 
     // Verify the arrived time is displayed correctly
-    expect(find.text('Arrived: ${DateFormat('hh:mm a').format(testJob.arrivedTime)}'), findsOneWidget);
+    expect(
+        find.text(
+            'Arrived: ${DateFormat('hh:mm a').format(testJob.arrivedTime)}'),
+        findsOneWidget);
 
     // Verify the start and end locations are displayed
     expect(find.text('From'), findsOneWidget);
@@ -54,7 +59,8 @@ void main() {
     expect(find.byIcon(Icons.location_pin), findsOneWidget);
   });
 
-  testWidgets('JobCard handles long location names correctly', (WidgetTester tester) async {
+  testWidgets('JobCard handles long location names correctly',
+      (WidgetTester tester) async {
     // Test data with long location names
     final longLocationJob = JobDetailsEntity(
       historyId: 'H002',
@@ -63,7 +69,8 @@ void main() {
       distance: 89.5,
       duration: const Duration(minutes: 90),
       startLocation: 'Very Long Starting Location Name That Might Wrap',
-      endLocation: 'Extremely Long Destination Name That Should Definitely Wrap to Multiple Lines',
+      endLocation:
+          'Extremely Long Destination Name That Should Definitely Wrap to Multiple Lines',
     );
 
     // Build the JobCard widget
