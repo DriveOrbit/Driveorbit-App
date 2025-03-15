@@ -49,14 +49,24 @@ class JobCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          // Modified location row with constrained text
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildInfoColumn(
-                  Icons.location_on, "From", history.startLocation),
-              const Icon(Icons.arrow_forward,
-                  color: Color.fromARGB(255, 255, 255, 255)),
-              _buildInfoColumn(Icons.location_pin, "To", history.endLocation),
+              _buildLocationColumn(
+                Icons.location_on,
+                "From",
+                history.startLocation,
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+              ),
+              _buildLocationColumn(
+                Icons.location_pin,
+                "To",
+                history.endLocation,
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -80,7 +90,7 @@ class JobCard extends StatelessWidget {
                 icon: const Icon(Icons.phone, size: 18),
                 label: const Text('Contact'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(180, 27, 27, 127),
+                  backgroundColor: Colors.green.shade600,
                   foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -99,20 +109,33 @@ class JobCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoColumn(IconData icon, String title, String value) {
+  Widget _buildLocationColumn(IconData icon, String title, String value) {
     return Expanded(
+      flex: 1,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: Colors.white, size: 20),
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(color: Colors.white, fontSize: 12),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
           ),
+          const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
             textAlign: TextAlign.center,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              height: 1.2,
+            ),
           ),
         ],
       ),
@@ -121,12 +144,16 @@ class JobCard extends StatelessWidget {
 
   Widget _buildMetricItem(IconData icon, String value) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, color: Colors.white, size: 20),
         const SizedBox(width: 8),
         Text(
           value,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+          ),
         ),
       ],
     );
