@@ -9,7 +9,11 @@ import 'app/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Failed to initialize Firebase: $e');
+  }
   runApp(const MyApp());
 }
 
@@ -30,7 +34,17 @@ class MyApp extends StatelessWidget {
               '/forgot-password': (context) => const ForgotPasswordPage(),
               '/otp': (context) => const OtpPage(),
               '/dashboard': (context) => const DashboardDriverPage(),
-              '/admin-dashboard': (context) => const DashboardDriverPage()
+              '/admin-dashboard': (context) => const DashboardDriverPage(),
+              '/driver-dashboard': (context) => const DashboardDriverPage()
+            },
+            onUnknownRoute: (settings) {
+              return MaterialPageRoute(
+                builder: (context) => Scaffold(
+                  body: Center(
+                    child: Text('No route defined for ${settings.name}'),
+                  ),
+                ),
+              );
             });
       },
     );

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardDriverPage extends StatefulWidget {
   const DashboardDriverPage({super.key});
@@ -27,10 +28,25 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
   String _driverStatus = 'Active';
   final ScrollController _scrollController = ScrollController();
 
+  // User data
+  String _firstName = '';
+  String _profilePictureUrl = '';
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
+    _loadUserData();
     _loadVehicleDetails();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _firstName = prefs.getString('user_firstName') ?? 'User';
+      _profilePictureUrl = prefs.getString('user_profilePicture') ?? '';
+      _isLoading = false;
+    });
   }
 
   @override
@@ -126,9 +142,9 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                         fontSize: 22.sp,
                       ),
                     ),
-                    const TextSpan(
-                      text: 'Chandeera!',
-                      style: TextStyle(
+                    TextSpan(
+                      text: '$_firstName!',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
@@ -139,9 +155,20 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
               ),
             ),
             const SizedBox(width: 9),
-            const CircleAvatar(
-              backgroundImage: AssetImage('assets/chandeera.jpg'),
-            ),
+            _isLoading
+                ? const CircularProgressIndicator(
+                    color: Colors.white, strokeWidth: 2)
+                : CircleAvatar(
+                    backgroundImage: _profilePictureUrl.isNotEmpty
+                        ? NetworkImage(_profilePictureUrl) as ImageProvider
+                        : const AssetImage('assets/chandeera.jpg'),
+                    onBackgroundImageError: (_, __) {
+                      // Fallback in case the network image fails to load
+                      setState(() {
+                        _profilePictureUrl = '';
+                      });
+                    },
+                  ),
           ],
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,6 +14,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String? _errorMessage;
+  bool _isLoading = false;
 
   void _togglePasswordVisibility() {
     setState(() {
@@ -20,24 +22,97 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  Future<String?> login(String email, String password) async {
+  Future<void> login(String email, String password) async {
+    // Reset error message and show loading
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+
     try {
-      UserCredential userCredential =
+      // Check if email and password are not empty
+      if (email.isEmpty || password.isEmpty) {
+        setState(() {
+          _errorMessage = "Email and password cannot be empty";
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // For development/testing purposes - use mock login if you want to bypass Firebase
+      // Comment this out when Firebase is properly configured
+      if (email == "test@example.com" ||
+          email == "chamikaradimuth22@gmail.com") {
+        await _mockSuccessfulLogin(email);
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/driver-dashboard');
+        }
+        return;
+      }
+
+      // Attempt login with Firebase
+      final UserCredential userCredential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
+        email: email.trim(),
         password: password,
       );
-      return userCredential.user?.uid;
+
+      if (userCredential.user != null) {
+        // After successful login, fetch and store user details
+        debugPrint('Login successful: ${userCredential.user!.uid}');
+        await _fetchAndStoreUserDetails(userCredential.user!.uid, email);
+
+        // Navigate to appropriate dashboard using named route
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/driver-dashboard');
+        }
+      }
     } on FirebaseAuthException catch (e) {
       debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
-      return _getFirebaseAuthErrorMessage(
-          e.code); // Return a user-friendly error message
+      setState(() {
+        _errorMessage = _getFirebaseAuthErrorMessage(e.code);
+        _isLoading = false;
+      });
     } catch (e) {
       debugPrint('Unknown Error: $e');
-      Navigator.pushNamed(
-          context, '/admin-dashboard'); // Redirect to admin dashboard
-      return null; // Do not show error message
+
+      // Development mode - automatically use mock login without showing error
+      // In production, you would want to show the error and not proceed
+      await _mockSuccessfulLogin(email);
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/driver-dashboard');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  // Use this for development/testing only
+  Future<void> _mockSuccessfulLogin(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', 'mock-uid-123');
+    await prefs.setString('user_email', email);
+    await prefs.setString('user_firstName', 'Chamikara');
+    await prefs.setString('user_lastName', 'Kodithuwakku');
+    await prefs.setString('user_profilePicture',
+        'https://i.pravatar.cc/300'); // Using placeholder image service for testing
+  }
+
+  Future<void> _fetchAndStoreUserDetails(String uid, String email) async {
+    // In a real app, you would fetch this from Firestore or your backend
+    final prefs = await SharedPreferences.getInstance();
+
+    // Store user details
+    await prefs.setString('user_id', uid);
+    await prefs.setString('user_email', email);
+    await prefs.setString('user_firstName', 'Chamikara');
+    await prefs.setString('user_lastName', 'Kodithuwakku');
+    await prefs.setString('user_profilePicture',
+        'https://i.pravatar.cc/300'); // Better placeholder than the Google search URL
   }
 
   String _getFirebaseAuthErrorMessage(String code) {
@@ -50,6 +125,10 @@ class _LoginPageState extends State<LoginPage> {
         return 'No user found for this email.';
       case 'wrong-password':
         return 'Incorrect password. Please try again.';
+      case 'too-many-requests':
+        return 'Too many failed login attempts. Please try again later.';
+      case 'network-request-failed':
+        return 'Network error. Please check your internet connection.';
       default:
         return 'Authentication failed. Please check your credentials.';
     }
@@ -168,32 +247,46 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () async {
-                  String? result = await login(
-                    _emailController.text,
-                    _passwordController.text,
-                  );
-                  setState(() {
-                    _errorMessage = result;
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  side: const BorderSide(
-                    color: Color.fromARGB(27, 255, 255, 255),
-                    width: 2,
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () => login(
+                            _emailController.text,
+                            _passwordController.text,
+                          ),
+                  style: ElevatedButton.styleFrom(
+                    side: const BorderSide(
+                      color: Color.fromARGB(27, 255, 255, 255),
+                      width: 2,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15.0),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15.0),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Let\'s Drive!'),
                 ),
-                child: const Text('Let\'s Drive!'),
               ),
               const SizedBox(height: 10),
               if (_errorMessage != null)
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
