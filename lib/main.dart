@@ -1,10 +1,10 @@
 import 'package:driveorbit_app/screens/dashboard/dashboard_driver_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Add this import
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/auth/forgot_password_page.dart';
 import 'screens/auth/otp_page.dart';
@@ -19,19 +19,6 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Store essential user data
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_firstName', 'Chamikara');
-    await prefs.setString('user_lastName', 'Kodithuwakku');
-    await prefs.setString('user_email', 'tempmail@gmail.com');
-    await prefs.setString('user_profilePicture',
-        'https://ui-avatars.com/api/?name=Chamikara&background=random');
-    debugPrint('✅ Pre-populated SharedPreferences with data');
-  } catch (e) {
-    debugPrint('❌ SharedPreferences error: $e');
-  }
-
   // Initialize Firebase with error handling
   try {
     await Firebase.initializeApp();
@@ -43,6 +30,21 @@ void main() async {
         cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
       );
       debugPrint('✅ Firestore settings configured');
+
+      // Test Firestore permissions early - only check drivers collection
+      try {
+        final auth = FirebaseAuth.instance;
+        if (auth.currentUser != null) {
+          final uid = auth.currentUser!.uid;
+          await FirebaseFirestore.instance.collection('drivers').doc(uid).get();
+          debugPrint('✅ Firestore permissions verified for drivers collection');
+        }
+      } catch (e) {
+        if (e.toString().contains('permission-denied')) {
+          debugPrint(
+              '⚠️ Firestore permission denied. Check security rules for drivers collection');
+        }
+      }
     } catch (e) {
       debugPrint('❌ Firestore settings error: $e');
     }
@@ -117,7 +119,6 @@ class MyApp extends StatelessWidget {
               child: child ?? Container(),
             );
           },
-          // ...existing code...
         );
       },
     );

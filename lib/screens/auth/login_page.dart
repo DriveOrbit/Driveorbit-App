@@ -69,113 +69,138 @@ class _LoginPageState extends State<LoginPage> {
     try {
       debugPrint('Attempting login with email: $email');
 
-      // Special handling for the PigeonUserDetails error
-      if (email.toLowerCase() == "tempmail@gmail.com") {
-        debugPrint('Using special handling for test account');
-        // Create a direct login without Firebase Auth
-        await _storeBasicUserInfo(User(
-          uid: 'temp-uid-${DateTime.now().millisecondsSinceEpoch}',
-          email: email,
-          displayName: 'Chamikara Kodithuwakku',
-        ));
+      // Attempt login with Firebase
+      final UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
 
+      if (userCredential.user != null) {
+        // Store basic authentication info first, so we at least have something
+        await _storeBasicUserInfo(userCredential.user!);
+
+        // Try to get additional info from Firestore, but don't block the login flow
+        try {
+          debugPrint('👤 User authenticated: ${userCredential.user!.uid}');
+          debugPrint('📊 Attempting to fetch Firestore data...');
+
+          final userDoc = await FirebaseFirestore.instance
+              .collection('drivers')
+              .doc(userCredential.user!.uid)
+              .get();
+
+          if (userDoc.exists) {
+            debugPrint('✅ Found driver document in Firestore!');
+            await _storeUserDataFromFirestore(
+                userCredential.user!, userDoc.data()!);
+          } else {
+            // Document doesn't exist - this is fine, don't create a new one automatically
+            debugPrint(
+                '⚠️ No driver document found in Firestore for this user ID');
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    'No driver profile found. Please contact your administrator.'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+
+            // Continue with basic auth info only
+            await _storeBasicUserInfo(userCredential.user!);
+          }
+        } catch (firestoreError) {
+          // Handle permission errors specifically
+          if (firestoreError.toString().contains('permission-denied')) {
+            debugPrint(
+                '⚠️ Firestore permission denied. Using basic auth info only.');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    'Unable to access user data. Make sure Firestore rules allow access to drivers collection.'),
+                duration: Duration(seconds: 5),
+              ),
+            );
+          } else {
+            debugPrint('❌ Firestore error: $firestoreError');
+          }
+        }
+
+        // Navigate to the dashboard regardless of Firestore success
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/driver-dashboard');
         }
-        return;
       }
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
 
-      // Handle the special type cast error that occurs with Firebase Auth
-      try {
-        // Attempt login with Firebase
-        final UserCredential userCredential =
-            await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email.trim(),
-          password: password,
-        );
+      // Handle specific error cases with field-specific messages
+      setState(() {
+        switch (e.code) {
+          case 'invalid-email':
+            _emailError = 'The email address is not valid';
+            break;
+          case 'user-not-found':
+            _emailError = 'No user found for this email';
+            break;
+          case 'wrong-password':
+            _passwordError = 'Incorrect password';
+            break;
+          case 'user-disabled':
+            _generalError = 'This account has been disabled';
+            break;
+          case 'too-many-requests':
+            _generalError = 'Too many login attempts. Try again later';
+            break;
+          default:
+            _generalError = _getFirebaseAuthErrorMessage(e.code);
+        }
+      });
+    } catch (e) {
+      // Check for the specific PigeonUserDetails error
+      final String errorText = e.toString();
+      if (errorText.contains("'List<Object?>") &&
+          errorText.contains("'PigeonUserDetails?'")) {
+        debugPrint('Detected PigeonUserDetails error, using fallback approach');
 
-        if (userCredential.user != null) {
-          // Directly try to access Firestore document by UID
-          try {
-            debugPrint('👤 User authenticated: ${userCredential.user!.uid}');
-            debugPrint('📊 Fetching Firestore data...');
+        try {
+          // Get current user since login might have succeeded despite the error
+          final currentUser = FirebaseAuth.instance.currentUser;
+          if (currentUser != null) {
+            // Try to fetch from Firestore with correct collection name
+            try {
+              final userDoc = await FirebaseFirestore.instance
+                  .collection('drivers')
+                  .doc(currentUser.uid)
+                  .get();
 
-            final userDoc = await FirebaseFirestore.instance
-                .collection('users')
-                .doc(userCredential.user!.uid)
-                .get();
-
-            if (userDoc.exists) {
-              debugPrint('✅ Found user document in Firestore!');
-              await _storeUserDataFromFirestore(
-                  userCredential.user! as User, userDoc.data()!);
-            } else {
-              debugPrint('❌ No user document found in Firestore!');
-              await _storeBasicUserInfo(userCredential.user!);
+              if (userDoc.exists) {
+                await _storeUserDataFromFirestore(currentUser, userDoc.data()!);
+              } else {
+                await _storeBasicUserInfo(currentUser);
+              }
+            } catch (nestedError) {
+              // Just use basic info if Firestore fails
+              await _storeBasicUserInfo(currentUser);
             }
-          } catch (firestoreError) {
-            debugPrint('❌ Firestore error: $firestoreError');
-            // Even if Firestore fails, store what we have from Auth
-            await _storeBasicUserInfo(userCredential.user!);
-          }
 
-          // Navigate to the dashboard
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/driver-dashboard');
+            // Navigate to dashboard - login succeeded
+            if (mounted) {
+              Navigator.pushReplacementNamed(context, '/driver-dashboard');
+              return;
+            }
           }
+        } catch (authError) {
+          debugPrint('❌ Error handling PigeonUserDetails fallback: $authError');
         }
-      } on FirebaseAuthException catch (e) {
-        debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
-
-        // Handle specific error cases with field-specific messages
-        setState(() {
-          switch (e.code) {
-            case 'invalid-email':
-              _emailError = 'The email address is not valid';
-              break;
-            case 'user-not-found':
-              _emailError = 'No user found for this email';
-              break;
-            case 'wrong-password':
-              _passwordError = 'Incorrect password';
-              break;
-            case 'user-disabled':
-              _generalError = 'This account has been disabled';
-              break;
-            case 'too-many-requests':
-              _generalError = 'Too many login attempts. Try again later';
-              break;
-            default:
-              _generalError = _getFirebaseAuthErrorMessage(e.code);
-          }
-        });
-      } catch (e) {
-        // Check if this is the specific PigeonUserDetails error
-        if (e.toString().contains("'List<Object?>") &&
-            e.toString().contains("'PigeonUserDetails?'")) {
-          debugPrint(
-              'Detected PigeonUserDetails error, using fallback approach');
-
-          // Create a direct SharedPreferences login
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('user_firstName', 'Chamikara');
-          await prefs.setString('user_lastName', 'Kodithuwakku');
-          await prefs.setString('user_email', email);
-          await prefs.setString('user_profilePicture',
-              'https://ui-avatars.com/api/?name=Chamikara&background=random');
-
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/driver-dashboard');
-          }
-          return;
-        }
-
-        // For other errors, show error message
-        debugPrint('❌ Unknown error: $e');
-        setState(() {
-          _generalError = 'Login failed. Please try again.';
-        });
       }
+
+      // For other errors, show error message
+      debugPrint('❌ Unknown error: $e');
+      setState(() {
+        _generalError = 'Login failed. Please try again.';
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -194,25 +219,24 @@ class _LoginPageState extends State<LoginPage> {
     await prefs.setString('user_id', user.uid);
     await prefs.setString('user_email', user.email ?? '');
 
-    // Get actual name data from Firestore
+    // Get actual name data from Firestore - using your specific field names
     final firstName = userData['firstName']?.toString() ?? '';
     final lastName = userData['lastName']?.toString() ?? '';
 
     debugPrint(
-        'Storing actual user data - firstName: $firstName, lastName: $lastName');
+        'Storing user data - firstName: $firstName, lastName: $lastName');
 
-    // Store names - with fallback to email username if needed
-    await prefs.setString('user_firstName',
-        firstName.isNotEmpty ? firstName : (user.email?.split('@')[0] ?? ''));
-
+    // Store names with fallback if needed
+    await prefs.setString('user_firstName', firstName);
     await prefs.setString('user_lastName', lastName);
 
-    // Store profile picture
+    // Store profile picture URL directly from Firestore
     final profilePic = userData['profilePicture']?.toString() ?? '';
     if (profilePic.isNotEmpty) {
       await prefs.setString('user_profilePicture', profilePic);
+      debugPrint('Stored profile picture URL: $profilePic');
     } else {
-      // Generate avatar with real name
+      // Generate avatar as fallback
       final name =
           firstName.isNotEmpty ? firstName : (user.email?.split('@')[0] ?? '');
       await prefs.setString('user_profilePicture',
@@ -220,39 +244,32 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // Basic info from Auth user - updated to handle our custom User class
-  Future<void> _storeBasicUserInfo(dynamic user) async {
+  // Basic info from Auth user
+  Future<void> _storeBasicUserInfo(User user) async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Handle both Firebase User and our custom User class
-    final String userId = user is User ? user.uid : user.uid;
-    final String? userEmail = user is User ? user.email : user.email;
-    final String? userDisplayName =
-        user is User ? user.displayName : user.displayName;
-    final String? userPhotoURL = user is User ? user.photoURL : user.photoURL;
-
-    await prefs.setString('user_id', userId);
-    await prefs.setString('user_email', userEmail ?? '');
+    await prefs.setString('user_id', user.uid);
+    await prefs.setString('user_email', user.email ?? '');
 
     String firstName = '';
     String lastName = '';
 
-    if (userDisplayName != null && userDisplayName.isNotEmpty) {
-      final nameParts = userDisplayName.split(' ');
+    if (user.displayName != null && user.displayName!.isNotEmpty) {
+      final nameParts = user.displayName!.split(' ');
       firstName = nameParts[0];
       if (nameParts.length > 1) {
         lastName = nameParts.sublist(1).join(' ');
       }
     } else {
-      firstName = userEmail?.split('@')[0] ?? '';
+      firstName = user.email?.split('@')[0] ?? '';
     }
 
     await prefs.setString('user_firstName', firstName);
     await prefs.setString('user_lastName', lastName);
 
     // Profile picture
-    if (userPhotoURL != null && userPhotoURL.isNotEmpty) {
-      await prefs.setString('user_profilePicture', userPhotoURL);
+    if (user.photoURL != null && user.photoURL!.isNotEmpty) {
+      await prefs.setString('user_profilePicture', user.photoURL!);
     } else {
       await prefs.setString('user_profilePicture',
           'https://ui-avatars.com/api/?name=${Uri.encodeComponent(firstName)}&background=random');
@@ -508,14 +525,4 @@ class _LoginPageState extends State<LoginPage> {
     _passwordController.dispose();
     super.dispose();
   }
-}
-
-// Create a User class that mimics Firebase User for special cases
-class User {
-  final String uid;
-  final String? email;
-  final String? displayName;
-  final String? photoURL;
-
-  User({required this.uid, this.email, this.displayName, this.photoURL});
 }
