@@ -1,14 +1,17 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driveorbit_app/models/vehicle_details_entity.dart';
 import 'package:driveorbit_app/screens/dashboard/driver_history_page.dart';
 import 'package:driveorbit_app/screens/qr_scan/qr_scan_page.dart';
 import 'package:driveorbit_app/widgets/vehicle_details.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardDriverPage extends StatefulWidget {
   const DashboardDriverPage({super.key});
@@ -28,11 +31,128 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
   String _driverStatus = 'Active';
   final ScrollController _scrollController = ScrollController();
 
+  // User data
+  String _firstName = '';
+  String _profilePictureUrl = '';
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
+    _loadUserData();
     _loadVehicleDetails();
   }
+
+  Future<void> _loadUserData() async {
+    try {
+      if (!mounted) return;
+      setState(() => _isLoading = true);
+      debugPrint('🔄 Loading user data from SharedPreferences');
+
+      final prefs = await SharedPreferences.getInstance();
+
+      // Load cached user data
+      final email = prefs.getString('user_email') ?? '';
+      final cachedFirstName = prefs.getString('user_firstName') ?? '';
+      final cachedProfilePic = prefs.getString('user_profilePicture') ?? '';
+
+      // Set cached values first for immediate display
+      if (cachedFirstName.isNotEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _firstName = cachedFirstName;
+          _profilePictureUrl = cachedProfilePic;
+        });
+      }
+
+      // Ensure user is authenticated
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        debugPrint('🚫 No authenticated user. Using cached data only.');
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+
+      debugPrint(
+          '🔍 Fetching user data from Firestore (UID: ${currentUser.uid})');
+
+      // Always use 'drivers' collection as per your Firestore rules
+      final userDoc = await FirebaseFirestore.instance
+          .collection('drivers')
+          .doc(currentUser.uid)
+          .get();
+
+      if (!userDoc.exists || userDoc.data() == null) {
+        debugPrint('⚠️ User document not found in Firestore');
+        _showErrorSnackbar(
+            'Driver profile not found. Please contact administrator.');
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+
+      // Extract user data safely
+      final userData = userDoc.data()!;
+      debugPrint('📂 Firestore data: $userData');
+
+      // Use safe access to fields with null checking
+      final freshFirstName = userData['firstName']?.toString() ?? '';
+      final freshLastName = userData['lastName']?.toString() ?? '';
+      final freshProfilePic = userData['profilePicture']?.toString() ?? '';
+
+      if (freshFirstName.isNotEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _firstName = freshFirstName;
+          if (freshProfilePic.isNotEmpty) {
+            _profilePictureUrl = freshProfilePic;
+          }
+        });
+
+        // Save to SharedPreferences for future use
+        await prefs.setString('user_firstName', freshFirstName);
+        await prefs.setString('user_lastName', freshLastName);
+        if (freshProfilePic.isNotEmpty) {
+          await prefs.setString('user_profilePicture', freshProfilePic);
+        }
+
+        debugPrint(
+            '✅ Updated user data - Name: $freshFirstName $freshLastName, Profile pic URL length: ${freshProfilePic.length}');
+      } else {
+        debugPrint('⚠️ firstName is missing in Firestore document');
+      }
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        debugPrint('❌ Firestore permission denied: ${e.message}');
+        _showErrorSnackbar(
+            'Permission denied accessing driver data. Please check your account permissions.');
+      } else {
+        debugPrint('❌ Firestore error: ${e.message}');
+        _showErrorSnackbar('Error loading driver data: ${e.message}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error in _loadUserData: $e');
+      _showErrorSnackbar('Failed to load user data');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// Shows an error message in a snackbar
+  void _showErrorSnackbar(String message) {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    });
+  }
+
+
 
   @override
   void dispose() {
@@ -41,16 +161,30 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
   }
 
   Future<void> _loadVehicleDetails() async {
-    final response =
-        await rootBundle.loadString('assets/mock_vehicledetails.json');
-    final List<dynamic> decodedList = jsonDecode(response);
-    final List<VehicleDetailsEntity> vehicleDetails =
-        decodedList.map((item) => VehicleDetailsEntity.fromJson(item)).toList();
+    try {
+      final response =
+          await rootBundle.loadString('assets/mock_vehicledetails.json');
+      final List<dynamic> decodedList = jsonDecode(response);
+      final List<VehicleDetailsEntity> vehicleDetails = decodedList
+          .map((item) => VehicleDetailsEntity.fromJson(item))
+          .toList();
 
-    setState(() {
-      _messages = vehicleDetails;
-      _filteredMessages = vehicleDetails;
-    });
+      setState(() {
+        _messages = vehicleDetails;
+        _filteredMessages = vehicleDetails;
+      });
+    } catch (e) {
+      debugPrint('Error loading vehicle details: $e');
+      // Show error to user
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load vehicle data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      });
+    }
   }
 
   String getGreeting() {
@@ -63,22 +197,12 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Available':
-        return Colors.green;
-      case 'Booked':
-        return Colors.orange;
-      case 'Not available':
-        return Colors.red;
-      default:
-        return Colors.white;
-    }
-  }
-
-  Color _getStatusColorByText(String statusText) {
-    switch (statusText) {
       case 'Active':
         return Colors.green;
+      case 'Booked':
       case 'Taking a break':
         return Colors.orange;
+      case 'Not available':
       case 'Unavailable':
         return Colors.red;
       default:
@@ -109,6 +233,9 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Debug output for firstName during build
+    debugPrint('Building dashboard with firstName: "$_firstName"');
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -127,9 +254,9 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                         fontSize: 22.sp,
                       ),
                     ),
-                    const TextSpan(
-                      text: 'Chandeera!',
-                      style: TextStyle(
+                    TextSpan(
+                      text: _firstName.isNotEmpty ? '$_firstName!' : 'Driver!',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
@@ -140,9 +267,23 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
               ),
             ),
             const SizedBox(width: 9),
-            const CircleAvatar(
-              backgroundImage: AssetImage('assets/chandeera.jpg'),
-            ),
+            _isLoading
+                ? const CircularProgressIndicator(
+                    color: Colors.white, strokeWidth: 2)
+                : CircleAvatar(
+                    backgroundImage: _profilePictureUrl.isNotEmpty
+                        ? NetworkImage(_profilePictureUrl) as ImageProvider
+                        : const AssetImage('assets/default_avatar.jpg'),
+                    onBackgroundImageError: (_, __) {
+                      debugPrint(
+                          'Error loading profile image: $_profilePictureUrl');
+                      // Fallback in case the network image fails to load
+                      setState(() {
+                        _profilePictureUrl =
+                            'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
+                      });
+                    },
+                  ),
           ],
         ),
       ),
@@ -539,7 +680,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: _getStatusColorByText(_driverStatus),
+                            color: _getStatusColor(_driverStatus),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(

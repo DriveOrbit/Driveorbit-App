@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth_controller.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -9,32 +9,62 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
-  final TextEditingController _userIdController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   String? _errorMessage;
+  bool _isLoading = false;
 
-  Future<void> _sendUserId() async {
-    final userId = _userIdController.text;
+  Future<void> _sendPasswordResetEmail() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter an email address';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
-      final response = await sendUserId(userId); // Call the sendUserId function
-      final statusCode = response['statusCode'];
-      final responseMessage = response['body'];
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
 
-      if (statusCode == 200) {
-        // Navigate to the OTP page with the user ID
-        Navigator.pushNamed(context, '/otp', arguments: userId);
-      } else {
-        // Display error message
-        setState(() {
-          _errorMessage = responseMessage;
-        });
+      // Show success dialog instead of just setting text
+      if (mounted) {
+        _showSuccessDialog();
       }
-    } catch (e) {
-      // Display error message
+    } on FirebaseAuthException catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = e.message ?? 'Failed to send password reset email';
+        _isLoading = false;
       });
     }
+  }
+
+  void _showSuccessDialog() {
+    setState(() {
+      _isLoading = false;
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Password Reset Email Sent'),
+        content: Text(
+            'A password reset link has been sent to ${_emailController.text}. Please check your inbox.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/login');
+            },
+            child: const Text('Return to Login'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -74,10 +104,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 width: double.infinity,
                 height: 40,
                 child: TextField(
-                  controller: _userIdController,
+                  controller: _emailController,
                   textAlign: TextAlign.center,
                   decoration: const InputDecoration(
-                    hintText: 'Enter your company ID',
+                    hintText: 'Enter your email',
                     hintStyle: TextStyle(
                       fontSize: 14,
                       color: Color.fromARGB(139, 238, 236, 236),
@@ -100,7 +130,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _sendUserId,
+                onPressed: _isLoading ? null : _sendPasswordResetEmail,
                 style: ElevatedButton.styleFrom(
                   foregroundColor: const Color.fromARGB(186, 255, 255, 255),
                   backgroundColor: const Color.fromARGB(16, 255, 255, 255),
@@ -110,7 +140,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     borderRadius: BorderRadius.circular(15.0),
                   ),
                 ),
-                child: const Text('Get Password'),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Get Password'),
               ),
               const SizedBox(height: 5),
               if (_errorMessage != null)
