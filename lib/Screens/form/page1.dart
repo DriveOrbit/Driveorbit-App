@@ -2,48 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:driveorbit_app/Screens/form/page2.dart'; // Import the second page (MileageForm)
 
 class PhotoUploadPage extends StatefulWidget {
+  const PhotoUploadPage({super.key});
+
   @override
   _PhotoUploadPageState createState() => _PhotoUploadPageState();
 }
 
 class _PhotoUploadPageState extends State<PhotoUploadPage> {
-  TextEditingController _inputController = TextEditingController(); // Controller for the input field
-
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Instruction Text
+              const SizedBox(height: 60),
               RichText(
-                textAlign: TextAlign.left,
                 text: const TextSpan(
                   children: [
                     TextSpan(
                       text: "Upload 4 side",
                       style: TextStyle(
                         fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: Color(0xFF6D6BF8),
                       ),
                     ),
                     TextSpan(
-                      text: " pictures\n",
+                      text: " pictures\nof the vehicle",
                       style: TextStyle(
                         fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF54C1D5),
-                      ),
-                    ),
-                    TextSpan(
-                      text: "of the vehicle",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: Color(0xFF54C1D5),
                       ),
                     ),
@@ -51,7 +43,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 130),
 
               // Clickable "Take a Photo" Section
               GestureDetector(
@@ -64,20 +56,23 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 5,
-                        spreadRadius: 2,
-                      ),
-                    ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.camera_alt, color: Colors.black),
-                      SizedBox(width: 10),
-                      Column(
+                      Image.asset(
+                        'assets/icons/Camera.png',
+                        width: 60,
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                        width: 2,
+                        height: 40,
+                        color: const Color.fromARGB(255, 0, 0, 0),
+                      ),
+                      const SizedBox(width: 10),
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
@@ -102,7 +97,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
                 ),
               ),
 
-              const Spacer(), // Pushes the Next button to the bottom
+              const SizedBox(height: 150),
 
               // Next Button
               Center(
@@ -120,7 +115,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  child: const Text("Next", style: TextStyle(fontSize: 18)),
+                  child: Text("Next", style: TextStyle(fontSize: 18)),
                 ),
               ),
             ],

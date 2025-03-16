@@ -1,125 +1,174 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class MileageForm extends StatefulWidget {
+  const MileageForm({Key? key}) : super(key: key);
+
   @override
   _MileageFormState createState() => _MileageFormState();
 }
 
-class _MileageFormState extends State<MileageForm> {
+class _MileageFormState extends State<MileageForm>
+    with SingleTickerProviderStateMixin {
   TextEditingController mileageController = TextEditingController();
-  bool isFullTank = true;
-  bool isTyping = false;
+  bool? isFullTank;
+  bool get isFormValid =>
+      mileageController.text.trim().isNotEmpty && isFullTank != null;
+  late AnimationController _animationController;
+  late Animation<Alignment> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _animation = AlignmentTween(
+      begin: Alignment.center,
+      end: Alignment.center,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _handleFuelStatusTap(bool value) {
+    setState(() {
+      if (isFullTank == value) {
+        isFullTank = null;
+        _animationController.reverse();
+      } else {
+        isFullTank = value;
+        final startAlignment =
+            value ? Alignment.centerLeft : Alignment.centerRight;
+        _animation = AlignmentTween(
+          begin: startAlignment,
+          end: Alignment.center,
+        ).animate(CurvedAnimation(
+          parent: _animationController,
+          curve: Curves.easeInOut,
+        ));
+        _animationController.forward(from: 0);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 70.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Clickable Mileage Input
+              // Header
               RichText(
-                textAlign: TextAlign.left,
                 text: const TextSpan(
                   children: [
                     TextSpan(
                       text: "Enter your ",
                       style: TextStyle(
                         fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: Color(0xFF6D6BF8),
                       ),
                     ),
                     TextSpan(
-                      text: "current\n",
+                      text: "current\nmileage",
                       style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF54C1D5),
-                      ),
+                          fontSize: 28,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF54C1D5)),
                     ),
-                    TextSpan(
-                      text: "mileage",
-                      style: TextStyle(
-                        fontSize: 28,
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // Mileage Display
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: mileageController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(
+                        fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF54C1D5),
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        hintText: "190 868",
+                        hintStyle: TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade600,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      onChanged: (value) => setState(() {}),
+                    ),
+                    const Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                        "KM",
+                        style: TextStyle(
+                          fontSize: 24,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 90),
 
-              SizedBox(height: 8),
-
-              // Input Field
+              // Camera Button
               GestureDetector(
-                onTap: () {
-                  setState(() {
-                    isTyping = true;
-                  });
-                },
-                child: TextField(
-                  controller: mileageController,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(
-                    fontSize: 38,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white, // Text appears in black when typing
-                  ),
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                    hintText: isTyping ? '' : "654 321 km",
-                    hintStyle: TextStyle(
-                      fontSize: 38,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade600,
-                    ),
-                    border: InputBorder.none,
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 20),
-
-              // Clickable "Take a Photo" Section
-              GestureDetector(
-                onTap: () {
-                  // Implement camera functionality here
-                },
+                onTap: () {/* Add camera logic */},
                 child: Container(
                   width: double.infinity,
-                  padding: EdgeInsets.symmetric(vertical: 15),
+                  padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(15),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.camera_alt, color: Colors.black),
-                      SizedBox(width: 10),
+                      Image.asset(
+                        'assets/icons/Camera.png',
+                        width: 60,
+                      ),
+                      const SizedBox(width: 15),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             "Take a photo of dashboard",
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black),
                           ),
                           Text(
                             "Please take a clear photo",
                             style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black54,
-                            ),
+                                fontSize: 12, color: Colors.grey.shade600),
                           ),
                         ],
                       ),
@@ -127,71 +176,67 @@ class _MileageFormState extends State<MileageForm> {
                   ),
                 ),
               ),
+              const SizedBox(height: 80),
 
-              SizedBox(height: 40),
-
-              // Fuel Status Question
+              // Fuel Status Header
               RichText(
-                textAlign: TextAlign.left,
                 text: const TextSpan(
                   children: [
                     TextSpan(
                       text: "What is your ",
                       style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF6D6BF8),
-                      ),
+                          fontSize: 28,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF6D6BF8)),
                     ),
                     TextSpan(
-                      text: "current fuel\n",
+                      text: "current fuel\nstatus",
                       style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF54C1D5),
-                      ),
-                    ),
-                    TextSpan(
-                      text: "status",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF54C1D5),
-                      ),
+                          fontSize: 28,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF54C1D5)),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 20),
 
-              const SizedBox(height: 15),
-
-              // Fuel Status Selector
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  fuelStatusOption("Full tank", false),
-                  fuelStatusOption("Need to tank full", true),
-                ],
+              // Fuel Status Selection
+              Container(
+                height: 80, // Fixed height for fuel status area
+                child: AnimatedBuilder(
+                  animation: _animationController,
+                  builder: (context, child) {
+                    return Align(
+                      alignment: _animation.value,
+                      child: _buildFuelStatusOptions(),
+                    );
+                  },
+                ),
               ),
 
-              SizedBox(height: 180),
+              const SizedBox(height: 100),
 
-              // Next button
+              // Next Button
               Align(
                 alignment: Alignment.center,
-                child: GestureDetector(
-                  onTap: () {
-                    // Implement navigation or next action
-                  },
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white24,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  child: IconButton(
+                    onPressed: isFormValid
+                        ? () {
+                            print('Mileage: ${mileageController.text}');
+                            print('Full tank: $isFullTank');
+                          }
+                        : null,
+                    icon: Image.asset(
+                      'assets/icons/Back.png',
+                      width: 60,
+                      color: isFormValid
+                          ? Colors.white // Active icon color
+                          : Colors.grey, // Disabled icon color
                     ),
-                    child: Icon(Icons.arrow_forward,
-                        color: Colors.white, size: 30),
                   ),
                 ),
               ),
@@ -202,31 +247,56 @@ class _MileageFormState extends State<MileageForm> {
     );
   }
 
-  Widget fuelStatusOption(String text, bool value) {
-    bool isSelected = isFullTank == value;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          isFullTank = value; // Update state on tap
-        });
-      },
-      child: Row(
+  Widget _buildFuelStatusOptions() {
+    if (isFullTank == null) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.water_drop,
-            color: isSelected ? Colors.green : Colors.white,
-          ),
-          SizedBox(width: 5),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 16,
-              color: isSelected ? Colors.green : Colors.white,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          _buildFuelStatusButton("Full tank", true),
+          const SizedBox(width: 15),
+          _buildFuelStatusButton("Refuel needed", false),
         ],
+      );
+    } else {
+      return _buildFuelStatusButton(
+          isFullTank! ? "Full tank" : "Refuel needed", isFullTank!);
+    }
+  }
+
+  Widget _buildFuelStatusButton(String text, bool value) {
+    final isSelected = isFullTank == value;
+    return GestureDetector(
+      onTap: () => _handleFuelStatusTap(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 24),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade900,
+          borderRadius: BorderRadius.circular(20),
+          border: isSelected
+              ? Border.all(color: const Color(0xFF6D6BF8), width: 2)
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.water_drop,
+              color:
+                  isSelected ? const Color(0xFF20b24d) : Colors.yellow.shade600,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
