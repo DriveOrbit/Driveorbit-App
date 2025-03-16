@@ -32,6 +32,7 @@ dependencies:
     sdk: flutter
   firebase_core: ^2.8.0
   firebase_auth: ^4.5.0
+  cloud_firestore: ^4.5.0  # Add Firestore dependency
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
   flutter_screenutil: ^5.9.3

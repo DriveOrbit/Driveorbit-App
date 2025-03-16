@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driveorbit_app/models/vehicle_details_entity.dart';
 import 'package:driveorbit_app/screens/dashboard/driver_history_page.dart';
 import 'package:driveorbit_app/screens/qr_scan/qr_scan_page.dart';
 import 'package:driveorbit_app/widgets/vehicle_details.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -41,12 +43,73 @@ class _DashboardDriverPageState extends State<DashboardDriverPage> {
   }
 
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _firstName = prefs.getString('user_firstName') ?? 'User';
-      _profilePictureUrl = prefs.getString('user_profilePicture') ?? '';
-      _isLoading = false;
-    });
+    try {
+      debugPrint('Loading user data from SharedPreferences');
+      final prefs = await SharedPreferences.getInstance();
+
+      // Load real user data from preferences
+      final firstName = prefs.getString('user_firstName') ?? '';
+      final lastName = prefs.getString('user_lastName') ?? '';
+      final email = prefs.getString('user_email') ?? '';
+      final profilePic = prefs.getString('user_profilePicture') ?? '';
+
+      debugPrint(
+          'Retrieved user data - firstName: $firstName, lastName: $lastName, email: $email');
+
+      // Try to refresh from Firestore if user is authenticated
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        try {
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUser.uid)
+              .get();
+
+          if (userDoc.exists) {
+            final userData = userDoc.data()!;
+            final freshFirstName = userData['firstName']?.toString();
+            final freshLastName = userData['lastName']?.toString();
+
+            if (freshFirstName != null && freshFirstName.isNotEmpty) {
+              await prefs.setString('user_firstName', freshFirstName);
+              debugPrint('Updated firstName from Firestore: $freshFirstName');
+
+              // Update in-memory value with fresh data
+              setState(() {
+                _firstName = freshFirstName;
+              });
+            }
+
+            if (freshLastName != null && freshLastName.isNotEmpty) {
+              await prefs.setString('user_lastName', freshLastName);
+            }
+          }
+        } catch (e) {
+          debugPrint('Error refreshing from Firestore: $e');
+        }
+      }
+
+      // Set state with the best data we have
+      setState(() {
+        _firstName = firstName.isNotEmpty ? firstName : email.split('@')[0];
+        _profilePictureUrl = profilePic;
+        _isLoading = false;
+      });
+
+      // Generate avatar if needed
+      if (_profilePictureUrl.isEmpty) {
+        setState(() {
+          _profilePictureUrl =
+              'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading user data: $e');
+      setState(() {
+        _firstName = '';
+        _isLoading = false;
+      });
+    }
   }
 
   @override
