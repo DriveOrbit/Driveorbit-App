@@ -5,10 +5,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/auth/forgot_password_page.dart';
 import 'screens/auth/otp_page.dart';
 import 'app/theme.dart';
+import 'screens/splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +25,9 @@ void main() async {
   try {
     await Firebase.initializeApp();
     debugPrint('✅ Firebase core initialized');
+
+    // Set persistence for Firebase Auth
+    await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
 
     try {
       FirebaseFirestore.instance.settings = const Settings(
@@ -104,8 +109,9 @@ class MyApp extends StatelessWidget {
           title: 'DriveOrbit',
           debugShowCheckedModeBanner: false,
           theme: darkTheme,
-          initialRoute: '/login',
+          initialRoute: '/splash', // Changed from '/login' to '/splash'
           routes: {
+            '/splash': (context) => const SplashScreen(),
             '/login': (context) => const LoginPage(),
             '/forgot-password': (context) => const ForgotPasswordPage(),
             '/otp': (context) => const OtpPage(),
