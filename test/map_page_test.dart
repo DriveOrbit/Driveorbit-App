@@ -12,7 +12,8 @@ void main() {
     expect(find.byType(MapPage), findsOneWidget);
   });
 
-  testWidgets('Floating action button exists in MapPage', (WidgetTester tester) async {
+  testWidgets('Floating action button exists in MapPage',
+      (WidgetTester tester) async {
     // Build the MapPage widget
     await tester.pumpWidget(const MaterialApp(home: MapPage()));
 
@@ -20,7 +21,8 @@ void main() {
     expect(find.byType(FloatingActionButton), findsOneWidget);
   });
 
-  testWidgets('Tapping FloatingActionButton calls _getCurrentLocation', (WidgetTester tester) async {
+  testWidgets('Tapping FloatingActionButton calls _getCurrentLocation',
+      (WidgetTester tester) async {
     // Build the MapPage widget
     await tester.pumpWidget(const MaterialApp(home: MapPage()));
 
