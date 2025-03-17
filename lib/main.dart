@@ -60,7 +60,7 @@ void main() async {
 class MyErrorHandler extends StatelessWidget {
   final Widget child;
 
-  const MyErrorHandler({Key? key, required this.child}) : super(key: key);
+  const MyErrorHandler({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -74,13 +74,13 @@ class MyErrorHandler extends StatelessWidget {
             children: [
               const Icon(Icons.error_outline, color: Colors.red, size: 60),
               const SizedBox(height: 16),
-              Text(
+              const Text(
                 'Something went wrong',
                 style: TextStyle(color: Colors.white, fontSize: 20),
               ),
               TextButton(
                 onPressed: () => SystemNavigator.pop(),
-                child: Text('Exit App', style: TextStyle(color: Colors.blue)),
+                child: const Text('Exit App', style: TextStyle(color: Colors.blue)),
               )
             ],
           ),
@@ -115,7 +115,7 @@ class MyApp extends StatelessWidget {
           // Global error handling
           builder: (context, child) {
             return MediaQuery(
-              data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+              data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(1.0)),
               child: child ?? Container(),
             );
           },
