@@ -80,7 +80,8 @@ class MyErrorHandler extends StatelessWidget {
               ),
               TextButton(
                 onPressed: () => SystemNavigator.pop(),
-                child: const Text('Exit App', style: TextStyle(color: Colors.blue)),
+                child: const Text('Exit App',
+                    style: TextStyle(color: Colors.blue)),
               )
             ],
           ),
@@ -115,7 +116,8 @@ class MyApp extends StatelessWidget {
           // Global error handling
           builder: (context, child) {
             return MediaQuery(
-              data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(1.0)),
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.linear(1.0)),
               child: child ?? Container(),
             );
           },

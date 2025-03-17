@@ -45,8 +45,8 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
     super.initState();
     _loadUserData();
     _loadVehicleDetails();
-    // Set default status to Available instead of All
-    _selectedStatusFilter = 'Available';
+    // Set default status to All instead of Available
+    _selectedStatusFilter = 'All';
 
     // Initialize animation controller
     _animationController = AnimationController(
@@ -446,48 +446,221 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
   Widget _buildStatusToggleButton() {
     return InkWell(
       onTap: () {
-        setState(() {
-          // Cycle through statuses: Active -> Taking a break -> Unavailable -> Active
-          switch (_driverStatus) {
-            case 'Active':
-              _driverStatus = 'Taking a break';
-              break;
-            case 'Taking a break':
-              _driverStatus = 'Unavailable';
-              break;
-            case 'Unavailable':
-              _driverStatus = 'Active';
-              break;
-            default:
-              _driverStatus = 'Active';
-          }
-        });
+        _showStatusSelectionPopup();
       },
-      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: _getStatusColor(_driverStatus),
+          color: Colors.grey[900],
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white24, width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: _getStatusColor(_driverStatus),
+                shape: BoxShape.circle,
+              ),
+              margin: const EdgeInsets.only(right: 8),
+            ),
             Text(
               _driverStatus,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
-                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.touch_app, color: Colors.white, size: 18),
+            const Icon(Icons.arrow_drop_down, color: Colors.white),
           ],
         ),
       ),
     );
+  }
+
+  void _showStatusSelectionPopup() {
+    // Define the status options with their colors
+    final statusOptions = [
+      {'status': 'Active', 'color': Colors.green},
+      {'status': 'Taking a break', 'color': Colors.orange},
+      {'status': 'Unavailable', 'color': Colors.red},
+    ];
+
+    // Find initial selected index
+    int initialSelectedIndex = 0;
+    for (int i = 0; i < statusOptions.length; i++) {
+      if (statusOptions[i]['status'] == _driverStatus) {
+        initialSelectedIndex = i;
+        break;
+      }
+    }
+
+    // Create a new status selection controller
+    ValueNotifier<int> selectedIndexNotifier =
+        ValueNotifier(initialSelectedIndex);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900],
+            contentPadding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            content: GestureDetector(
+              onHorizontalDragUpdate: (details) {
+                // Calculate which status to select based on drag position
+                final RenderBox box = context.findRenderObject() as RenderBox;
+                final localPosition = box.globalToLocal(details.globalPosition);
+
+                final totalWidth = box.size.width;
+                final position = localPosition.dx;
+
+                // Determine which option to select (divide container into three sections)
+                final sectionWidth = totalWidth / statusOptions.length;
+
+                for (int i = 0; i < statusOptions.length; i++) {
+                  if (position >= i * sectionWidth &&
+                      position < (i + 1) * sectionWidth) {
+                    if (selectedIndexNotifier.value != i) {
+                      setDialogState(() {
+                        selectedIndexNotifier.value = i;
+                      });
+                    }
+                    break;
+                  }
+                }
+              },
+              onHorizontalDragEnd: (details) {
+                // Close the dialog and update the status
+                Navigator.of(context).pop();
+                final newStatus = statusOptions[selectedIndexNotifier.value]
+                    ['status'] as String;
+
+                // Update the parent state
+                setState(() {
+                  _driverStatus = newStatus;
+                });
+              },
+              child: Container(
+                width: 280,
+                decoration: BoxDecoration(
+                  color: Colors.grey[900],
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: Text(
+                        "Select Driver Status",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Divider(color: Colors.white24, height: 1),
+                    ValueListenableBuilder<int>(
+                      valueListenable: selectedIndexNotifier,
+                      builder: (context, selectedIndex, child) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children:
+                                List.generate(statusOptions.length, (index) {
+                              final status =
+                                  statusOptions[index]['status'] as String;
+                              final color =
+                                  statusOptions[index]['color'] as Color;
+                              final isSelected = selectedIndex == index;
+
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? color
+                                          : Colors.transparent,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: color,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: isSelected
+                                        ? Icon(Icons.check,
+                                            color: Colors.white, size: 18)
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    index == 0
+                                        ? "Active"
+                                        : index == 1
+                                            ? "Break"
+                                            : "Unavail.",
+                                    style: TextStyle(
+                                      color:
+                                          isSelected ? color : Colors.white70,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(color: Colors.white24, height: 1),
+                    Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.swipe,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Swipe to select",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        });
+      },
+    ).then((_) {
+      // Cleanup the notifier when the dialog is closed
+      selectedIndexNotifier.dispose();
+    });
   }
 
   @override
@@ -496,6 +669,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
+        automaticallyImplyLeading: false,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
