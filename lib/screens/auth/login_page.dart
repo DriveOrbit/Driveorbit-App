@@ -10,7 +10,8 @@ class LoginPage extends StatefulWidget {
   _LoginPageState createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   bool _obscureText = true;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -21,6 +22,45 @@ class _LoginPageState extends State<LoginPage> {
 
   // Form key for validation
   final _formKey = GlobalKey<FormState>();
+
+  // Animation controller for button press effect
+  // Making these non-late to avoid LateInitializationError
+  AnimationController? _buttonController;
+  Animation<double>? _buttonAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize animation controller immediately
+    _buttonController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    // Create animation immediately
+    _buttonAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(
+        parent: _buttonController!,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Check for cached credentials (optional auto-fill)
+    _checkCachedCredentials();
+  }
+
+  Future<void> _checkCachedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedEmail = prefs.getString('saved_email');
+      if (savedEmail != null && savedEmail.isNotEmpty) {
+        _emailController.text = savedEmail;
+      }
+    } catch (e) {
+      debugPrint('Error loading cached credentials: $e');
+    }
+  }
 
   void _togglePasswordVisibility() {
     setState(() {
@@ -37,34 +77,44 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
+  // Email validation
+  bool _isEmailValid(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  // Password validation (must be at least 6 characters)
+  bool _isPasswordValid(String password) {
+    return password.length >= 6;
+  }
+
   Future<void> login(String email, String password) async {
     // Reset error messages
     _resetErrors();
 
-    // Check for empty fields
-    bool hasError = false;
-    if (email.isEmpty) {
-      setState(() {
-        _emailError = "Email cannot be empty";
-        hasError = true;
-      });
-    }
-
-    if (password.isEmpty) {
-      setState(() {
-        _passwordError = "Password cannot be empty";
-        hasError = true;
-      });
-    }
-
-    if (hasError) {
+    // Validate form
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // Show loading indicator
+    // Basic validation
+    if (email.isEmpty) {
+      setState(() => _emailError = "Email cannot be empty");
+      return;
+    } else if (!_isEmailValid(email)) {
+      setState(() => _emailError = "Please enter a valid email address");
+      return;
+    }
+
+    if (password.isEmpty) {
+      setState(() => _passwordError = "Password cannot be empty");
+      return;
+    }
+
+    // Show loading indicator with animation
     setState(() {
       _isLoading = true;
     });
+    _buttonController?.forward();
 
     try {
       debugPrint('Attempting login with email: $email');
@@ -77,136 +127,143 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (userCredential.user != null) {
-        // Store basic authentication info first, so we at least have something
+        // Save email for convenience
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('saved_email', email);
+
+        // Store basic authentication info first
         await _storeBasicUserInfo(userCredential.user!);
 
-        // Try to get additional info from Firestore, but don't block the login flow
-        try {
-          debugPrint('👤 User authenticated: ${userCredential.user!.uid}');
-          debugPrint('📊 Attempting to fetch Firestore data...');
+        // Try to get additional info from Firestore
+        await _fetchUserDataFromFirestore(userCredential.user!);
 
-          final userDoc = await FirebaseFirestore.instance
-              .collection('drivers')
-              .doc(userCredential.user!.uid)
-              .get();
-
-          if (userDoc.exists) {
-            debugPrint('✅ Found driver document in Firestore!');
-            await _storeUserDataFromFirestore(
-                userCredential.user!, userDoc.data()!);
-          } else {
-            // Document doesn't exist - this is fine, don't create a new one automatically
-            debugPrint(
-                '⚠️ No driver document found in Firestore for this user ID');
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                    'No driver profile found. Please contact your administrator.'),
-                duration: Duration(seconds: 3),
-              ),
-            );
-
-            // Continue with basic auth info only
-            await _storeBasicUserInfo(userCredential.user!);
-          }
-        } catch (firestoreError) {
-          // Handle permission errors specifically
-          if (firestoreError.toString().contains('permission-denied')) {
-            debugPrint(
-                '⚠️ Firestore permission denied. Using basic auth info only.');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                    'Unable to access user data. Make sure Firestore rules allow access to drivers collection.'),
-                duration: Duration(seconds: 5),
-              ),
-            );
-          } else {
-            debugPrint('❌ Firestore error: $firestoreError');
-          }
-        }
-
-        // Navigate to the dashboard regardless of Firestore success
+        // Navigate to the dashboard
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/driver-dashboard');
         }
       }
     } on FirebaseAuthException catch (e) {
       debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
-
-      // Handle specific error cases with field-specific messages
-      setState(() {
-        switch (e.code) {
-          case 'invalid-email':
-            _emailError = 'The email address is not valid';
-            break;
-          case 'user-not-found':
-            _emailError = 'No user found for this email';
-            break;
-          case 'wrong-password':
-            _passwordError = 'Incorrect password';
-            break;
-          case 'user-disabled':
-            _generalError = 'This account has been disabled';
-            break;
-          case 'too-many-requests':
-            _generalError = 'Too many login attempts. Try again later';
-            break;
-          default:
-            _generalError = _getFirebaseAuthErrorMessage(e.code);
-        }
-      });
+      _handleFirebaseAuthError(e);
     } catch (e) {
-      // Check for the specific PigeonUserDetails error
-      final String errorText = e.toString();
-      if (errorText.contains("'List<Object?>") &&
-          errorText.contains("'PigeonUserDetails?'")) {
-        debugPrint('Detected PigeonUserDetails error, using fallback approach');
-
-        try {
-          // Get current user since login might have succeeded despite the error
-          final currentUser = FirebaseAuth.instance.currentUser;
-          if (currentUser != null) {
-            // Try to fetch from Firestore with correct collection name
-            try {
-              final userDoc = await FirebaseFirestore.instance
-                  .collection('drivers')
-                  .doc(currentUser.uid)
-                  .get();
-
-              if (userDoc.exists) {
-                await _storeUserDataFromFirestore(currentUser, userDoc.data()!);
-              } else {
-                await _storeBasicUserInfo(currentUser);
-              }
-            } catch (nestedError) {
-              // Just use basic info if Firestore fails
-              await _storeBasicUserInfo(currentUser);
-            }
-
-            // Navigate to dashboard - login succeeded
-            if (mounted) {
-              Navigator.pushReplacementNamed(context, '/driver-dashboard');
-              return;
-            }
-          }
-        } catch (authError) {
-          debugPrint('❌ Error handling PigeonUserDetails fallback: $authError');
-        }
-      }
-
-      // For other errors, show error message
-      debugPrint('❌ Unknown error: $e');
-      setState(() {
-        _generalError = 'Login failed. Please try again.';
-      });
+      _handleGenericError(e);
     } finally {
+      // Reset button animation and loading state
       if (mounted) {
+        _buttonController?.reverse();
         setState(() {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  // Handle Firebase Auth specific errors
+  void _handleFirebaseAuthError(FirebaseAuthException e) {
+    setState(() {
+      switch (e.code) {
+        case 'invalid-email':
+          _emailError = 'The email address is not valid';
+          break;
+        case 'user-not-found':
+          _emailError = 'No user found for this email';
+          break;
+        case 'wrong-password':
+          _passwordError = 'Incorrect password';
+          break;
+        case 'user-disabled':
+          _generalError = 'This account has been disabled';
+          break;
+        case 'too-many-requests':
+          _generalError = 'Too many login attempts. Try again later';
+          break;
+        case 'network-request-failed':
+          _generalError = 'Network error. Check your connection.';
+          break;
+        default:
+          _generalError = _getFirebaseAuthErrorMessage(e.code);
+      }
+    });
+  }
+
+  // Handle generic errors including PigeonUserDetails error
+  void _handleGenericError(dynamic e) {
+    final String errorText = e.toString();
+    if (errorText.contains("'List<Object?>") &&
+        errorText.contains("'PigeonUserDetails?'")) {
+      _handlePigeonUserDetailsError();
+    } else {
+      debugPrint('❌ Unknown error: $e');
+      setState(() {
+        _generalError = 'Login failed. Please try again.';
+      });
+    }
+  }
+
+  Future<void> _handlePigeonUserDetailsError() async {
+    debugPrint('Detected PigeonUserDetails error, using fallback approach');
+    try {
+      // Get current user since login might have succeeded despite the error
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        await _fetchUserDataFromFirestore(currentUser);
+        // Navigate to dashboard - login succeeded
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/driver-dashboard');
+        }
+      }
+    } catch (authError) {
+      debugPrint('❌ Error handling PigeonUserDetails fallback: $authError');
+      setState(() {
+        _generalError = 'Error retrieving user data. Please try again.';
+      });
+    }
+  }
+
+  // Clean method to fetch and store Firestore data
+  Future<void> _fetchUserDataFromFirestore(User user) async {
+    try {
+      debugPrint('📊 Attempting to fetch Firestore data...');
+      final userDoc = await FirebaseFirestore.instance
+          .collection('drivers')
+          .doc(user.uid)
+          .get();
+
+      if (userDoc.exists) {
+        debugPrint('✅ Found driver document in Firestore!');
+        await _storeUserDataFromFirestore(user, userDoc.data()!);
+      } else {
+        // Document doesn't exist
+        debugPrint('⚠️ No driver document found in Firestore for this user ID');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'No driver profile found. Please contact your administrator.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (firestoreError) {
+      _handleFirestoreError(firestoreError);
+    }
+  }
+
+  void _handleFirestoreError(dynamic error) {
+    if (error.toString().contains('permission-denied')) {
+      debugPrint('⚠️ Firestore permission denied. Using basic auth info only.');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Unable to access user data. Make sure Firestore rules allow access.'),
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } else {
+      debugPrint('❌ Firestore error: $error');
     }
   }
 
@@ -308,208 +365,16 @@ class _LoginPageState extends State<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 60),
-                  RichText(
-                    text: const TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Empower',
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF54C1D5),
-                          ),
-                        ),
-                        TextSpan(
-                          text: ' Your Fleet,\nElevate Your Edge',
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF5B59A1),
-                          ),
-                        ),
-                      ],
-                    ),
-                    textAlign: TextAlign.left,
-                  ),
+                  _buildHeader(),
                   const SizedBox(height: 70),
-                  const Text(
-                    'Enter your email to get started:',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    height: _emailError != null ? 60 : 40,
-                    child: TextField(
-                      controller: _emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        labelStyle: TextStyle(
-                          fontSize: 14,
-                          color: _emailError != null
-                              ? Colors.red.shade300
-                              : const Color.fromARGB(178, 255, 255, 255),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(9.0),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: _emailError != null
-                                ? Colors.red
-                                : const Color.fromARGB(189, 255, 255, 255),
-                          ),
-                          borderRadius: BorderRadius.circular(9.0),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color:
-                                _emailError != null ? Colors.red : Colors.blue,
-                          ),
-                          borderRadius: BorderRadius.circular(9.0),
-                        ),
-                        errorText: _emailError,
-                        errorStyle: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.red,
-                        ),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      onChanged: (value) {
-                        if (_emailError != null) {
-                          setState(() {
-                            _emailError = null;
-                          });
-                        }
-                      },
-                    ),
-                  ),
+                  _buildEmailField(),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Enter your password:',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    height: _passwordError != null ? 60 : 40,
-                    child: TextField(
-                      controller: _passwordController,
-                      obscureText: _obscureText,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        labelStyle: TextStyle(
-                          color: _passwordError != null
-                              ? Colors.red.shade300
-                              : const Color.fromARGB(178, 255, 255, 255),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(9.0),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: _passwordError != null
-                                ? Colors.red
-                                : const Color.fromARGB(189, 255, 255, 255),
-                          ),
-                          borderRadius: BorderRadius.circular(9.0),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: _passwordError != null
-                                ? Colors.red
-                                : Colors.blue,
-                          ),
-                          borderRadius: BorderRadius.circular(9.0),
-                        ),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureText
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: const Color.fromARGB(55, 255, 255, 255),
-                          ),
-                          onPressed: _togglePasswordVisibility,
-                        ),
-                        errorText: _passwordError,
-                        errorStyle: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.red,
-                        ),
-                      ),
-                      onChanged: (value) {
-                        if (_passwordError != null) {
-                          setState(() {
-                            _passwordError = null;
-                          });
-                        }
-                      },
-                    ),
-                  ),
+                  _buildPasswordField(),
                   const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () => login(
-                                _emailController.text,
-                                _passwordController.text,
-                              ),
-                      style: ElevatedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Color.fromARGB(27, 255, 255, 255),
-                          width: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15.0),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text('Let\'s Drive!'),
-                    ),
-                  ),
+                  _buildLoginButton(),
                   const SizedBox(height: 10),
-                  if (_generalError != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Text(
-                        _generalError!,
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/forgot-password');
-                        },
-                        child: const Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildErrorMessage(),
+                  _buildForgotPasswordButton(),
                 ],
               ),
             ),
@@ -519,10 +384,244 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Widget _buildHeader() {
+    return RichText(
+      text: const TextSpan(
+        children: [
+          TextSpan(
+            text: 'Empower',
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF54C1D5),
+            ),
+          ),
+          TextSpan(
+            text: ' Your Fleet,\nElevate Your Edge',
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF5B59A1),
+            ),
+          ),
+        ],
+      ),
+      textAlign: TextAlign.left,
+    );
+  }
+
+  Widget _buildEmailField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Enter your email to get started:',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _emailController,
+          decoration: InputDecoration(
+            labelText: 'Email',
+            labelStyle: TextStyle(
+              fontSize: 14,
+              color: _emailError != null
+                  ? Colors.red.shade300
+                  : const Color.fromARGB(178, 255, 255, 255),
+            ),
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(9.0)),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: _emailError != null
+                    ? Colors.red
+                    : const Color.fromARGB(189, 255, 255, 255),
+              ),
+              borderRadius: BorderRadius.circular(9.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: _emailError != null ? Colors.red : Colors.blue,
+              ),
+              borderRadius: BorderRadius.circular(9.0),
+            ),
+            errorText: _emailError,
+            errorStyle: const TextStyle(fontSize: 12, color: Colors.red),
+            // Removed prefixIcon to restore original layout
+          ),
+          keyboardType: TextInputType.emailAddress,
+          onChanged: (value) {
+            if (_emailError != null) setState(() => _emailError = null);
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Email cannot be empty';
+            }
+            if (!_isEmailValid(value)) {
+              return 'Please enter a valid email address';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Enter your password:',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _passwordController,
+          obscureText: _obscureText,
+          decoration: InputDecoration(
+            labelText: 'Password',
+            labelStyle: TextStyle(
+              color: _passwordError != null
+                  ? Colors.red.shade300
+                  : const Color.fromARGB(178, 255, 255, 255),
+            ),
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(9.0)),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: _passwordError != null
+                    ? Colors.red
+                    : const Color.fromARGB(189, 255, 255, 255),
+              ),
+              borderRadius: BorderRadius.circular(9.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: _passwordError != null ? Colors.red : Colors.blue,
+              ),
+              borderRadius: BorderRadius.circular(9.0),
+            ),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscureText ? Icons.visibility : Icons.visibility_off,
+                color: const Color.fromARGB(55, 255, 255, 255),
+              ),
+              onPressed: _togglePasswordVisibility,
+            ),
+            errorText: _passwordError,
+            errorStyle: const TextStyle(fontSize: 12, color: Colors.red),
+            // Removed prefixIcon to restore original layout
+          ),
+          onChanged: (value) {
+            if (_passwordError != null) setState(() => _passwordError = null);
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Password cannot be empty';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoginButton() {
+    return ScaleTransition(
+      scale: _buttonAnimation ?? const AlwaysStoppedAnimation(1.0),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _isLoading
+              ? null
+              : () => login(
+                    _emailController.text,
+                    _passwordController.text,
+                  ),
+          style: ElevatedButton.styleFrom(
+            side: const BorderSide(
+              color: Color.fromARGB(27, 255, 255, 255),
+              width: 2,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text('Let\'s Drive!'),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorMessage() {
+    if (_generalError == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Container(
+        padding: const EdgeInsets.all(8.0),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.red.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _generalError!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForgotPasswordButton() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        TextButton(
+          onPressed: () {
+            Navigator.pushNamed(context, '/forgot-password');
+          },
+          child: const Text(
+            'Forgot Password?',
+            style: TextStyle(
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _buttonController?.dispose();
     super.dispose();
   }
 }
