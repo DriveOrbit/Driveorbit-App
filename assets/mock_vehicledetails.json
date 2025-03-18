@@ -1,0 +1,122 @@
+[
+    {
+      "vehicleId": 12,
+      "vehicleNumber": "KY-7766",
+      "vehicleType": "Car",
+      "vehicleModel": "Nissan Sunny (1997)",
+      "vehicleImage": "assets/car.png",
+      "vehicleStatus": "Available"
+    },
+    {
+      "vehicleId": 13,
+      "vehicleNumber": "KY-1234",
+      "vehicleType": "Van",
+      "vehicleModel": "Toyota Hilux (2005)",
+      "vehicleImage": "assets/van.png",
+      "vehicleStatus": "Booked"
+    },
+    {
+      "vehicleId": 14,
+      "vehicleNumber": "KY-5678",
+      "vehicleType": "Truck",
+      "vehicleModel": "ULTRA T.14 (2010)",
+      "vehicleImage": "assets/truck1.png",
+      "vehicleStatus": "Not available"
+    },
+    {
+      "vehicleId": 15,
+      "vehicleNumber": "KY-9101",
+      "vehicleType": "SUV",
+      "vehicleModel": "Ford Explorer (2018)",
+      "vehicleImage": "assets/suv.png",
+      "vehicleStatus": "Available"
+    },
+    {
+      "vehicleId": 16,
+      "vehicleNumber": "KY-1121",
+      "vehicleType": "Truck",
+      "vehicleModel": "Ford Transit (2020)",
+      "vehicleImage": "assets/truck2.png",
+      "vehicleStatus": "Booked"
+    },
+    {
+        "vehicleId": 17,
+        "vehicleNumber": "KY-7766",
+        "vehicleType": "Car",
+        "vehicleModel": "Nissan Sunny (1997)",
+        "vehicleImage": "assets/car.png",
+        "vehicleStatus": "Available"
+      },
+      {
+        "vehicleId": 18,
+        "vehicleNumber": "KY-1234",
+        "vehicleType": "Van",
+        "vehicleModel": "Toyota Hilux (2005)",
+        "vehicleImage": "assets/van.png",
+        "vehicleStatus": "Booked"
+      },
+      {
+        "vehicleId": 19,
+        "vehicleNumber": "KY-5678",
+        "vehicleType": "Truck",
+        "vehicleModel": "ULTRA T.14 (2010)",
+        "vehicleImage": "assets/truck1.png",
+        "vehicleStatus": "Not available"
+      },
+      {
+        "vehicleId": 20,
+        "vehicleNumber": "KY-9101",
+        "vehicleType": "SUV",
+        "vehicleModel": "Ford Explorer (2018)",
+        "vehicleImage": "assets/suv.png",
+        "vehicleStatus": "Available"
+      },
+      {
+        "vehicleId": 21,
+        "vehicleNumber": "KY-1121",
+        "vehicleType": "Truck",
+        "vehicleModel": "Ford Transit (2020)",
+        "vehicleImage": "assets/truck2.png",
+        "vehicleStatus": "Booked"
+      },
+      {
+        "vehicleId": 22,
+        "vehicleNumber": "KY-7766",
+        "vehicleType": "Car",
+        "vehicleModel": "Nissan Sunny (1997)",
+        "vehicleImage": "assets/car.png",
+        "vehicleStatus": "Available"
+      },
+      {
+        "vehicleId": 23,
+        "vehicleNumber": "KY-1234",
+        "vehicleType": "Van",
+        "vehicleModel": "Toyota Hilux (2005)",
+        "vehicleImage": "assets/van.png",
+        "vehicleStatus": "Booked"
+      },
+      {
+        "vehicleId": 24,
+        "vehicleNumber": "KY-5678",
+        "vehicleType": "Truck",
+        "vehicleModel": "ULTRA T.14 (2010)",
+        "vehicleImage": "assets/truck1.png",
+        "vehicleStatus": "Not available"
+      },
+      {
+        "vehicleId": 25,
+        "vehicleNumber": "KY-9101",
+        "vehicleType": "SUV",
+        "vehicleModel": "Ford Explorer (2018)",
+        "vehicleImage": "assets/suv.png",
+        "vehicleStatus": "Available"
+      },
+      {
+        "vehicleId": 26,
+        "vehicleNumber": "KY-1121",
+        "vehicleType": "Truck",
+        "vehicleModel": "Ford Transit (2020)",
+        "vehicleImage": "assets/truck2.png",
+        "vehicleStatus": "Booked"
+      }
+]
