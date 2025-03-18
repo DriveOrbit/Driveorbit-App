@@ -5,18 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "dashboard_ui",
+            "name": "driveorbit_app",
             "request": "launch",
             "type": "dart"
         },
         {
-            "name": "dashboard_ui (profile mode)",
+            "name": "driveorbit_app (profile mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
-            "name": "dashboard_ui (release mode)",
+            "name": "driveorbit_app (release mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"

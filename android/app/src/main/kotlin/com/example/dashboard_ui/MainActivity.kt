@@ -1,4 +1,4 @@
-package com.example.dashboard_ui
+package com.example.driveorbit_app
 
 import io.flutter.embedding.android.FlutterActivity
 
