@@ -26,8 +26,8 @@ void main() async {
     await Firebase.initializeApp();
     debugPrint('✅ Firebase core initialized');
 
-    // Set persistence for Firebase Auth
-    await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+    // Remove the setPersistence call as it's not supported on mobile
+    // Firebase Auth on mobile platforms keeps the user logged in by default
 
     try {
       FirebaseFirestore.instance.settings = const Settings(

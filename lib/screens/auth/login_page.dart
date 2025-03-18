@@ -119,8 +119,8 @@ class _LoginPageState extends State<LoginPage>
     try {
       debugPrint('Attempting login with email: $email');
 
-      // Set persistence to LOCAL to keep user logged in
-      await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+      // Remove the setPersistence call as it's not supported on mobile
+      // Firebase Auth on mobile platforms keeps the user logged in by default
 
       // Attempt login with Firebase
       final UserCredential userCredential =
