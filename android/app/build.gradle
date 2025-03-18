@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "lk.driveorbit.driveorbit_app"
+    namespace = "com.example.driveorbit_app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
