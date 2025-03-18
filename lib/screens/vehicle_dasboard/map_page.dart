@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_fonts/google_fonts.dart'; // For custom fonts
-import 'package:flutter_screenutil/flutter_screenutil.dart'; // For responsive sizing
-import 'dart:async'; // For Timer and StreamSubscription
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'dart:async';
+
+// Define a dummy JobPage
+class JobPage extends StatelessWidget {
+  const JobPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Job Details")),
+      body: const Center(child: Text("Job Details Placeholder")),
+    );
+  }
+}
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -13,34 +26,29 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
-  static const LatLng _sriLankaCenter =
-      LatLng(7.8731, 80.7718); // Sri Lanka Center
+  static const LatLng _sriLankaIIT = LatLng(6.9016, 79.8602);
   GoogleMapController? _mapController;
   LatLng? _currentLocation;
-  late DateTime startTime; // Tracks the time when the page is opened
-  Timer? durationTimer; // Updates the duration every second
-  StreamSubscription<Position>?
-      positionSubscription; // Listens to location updates
-  double totalMileage = 0.0; // Tracks the total distance traveled
-  Position?
-      previousPosition; // Stores the previous position for distance calculation
+  late DateTime startTime;
+  Timer? durationTimer;
+  StreamSubscription<Position>? positionSubscription;
+  double totalMileage = 0.0;
+  Position? previousPosition;
 
   @override
   void initState() {
     super.initState();
-    startTime = DateTime.now(); // Initialize start time
+    startTime = DateTime.now();
     durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {}); // Update the UI every second
+      setState(() {});
     });
-    _getCurrentLocation(); // Fetch initial location and start tracking
+    _getCurrentLocation();
   }
 
-  // Function to get current location and start tracking
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Check if location services are enabled
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,7 +57,6 @@ class _MapPageState extends State<MapPage> {
       return;
     }
 
-    // Request permission
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -69,7 +76,6 @@ class _MapPageState extends State<MapPage> {
       return;
     }
 
-    // Get initial position
     Position initialPosition = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
@@ -77,16 +83,13 @@ class _MapPageState extends State<MapPage> {
     setState(() {
       _currentLocation =
           LatLng(initialPosition.latitude, initialPosition.longitude);
-      previousPosition =
-          initialPosition; // Set the initial position as previous
+      previousPosition = initialPosition;
     });
 
-    // Start listening to position updates
     positionSubscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy
-            .high, // Use 'accuracy' instead of 'desiredAccuracy'
-        distanceFilter: 10, // Use 'distanceFilter' inside 'LocationSettings'
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
       ),
     ).listen((Position position) {
       if (previousPosition != null) {
@@ -96,7 +99,7 @@ class _MapPageState extends State<MapPage> {
           position.latitude,
           position.longitude,
         );
-        totalMileage += distanceInMeters / 1000; // Convert to kilometers
+        totalMileage += distanceInMeters / 1000;
       }
       previousPosition = position;
       setState(() {
@@ -105,7 +108,6 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
-  // Function to format duration into HH:mm:ss
   String formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final hours = twoDigits(duration.inHours);
@@ -114,26 +116,24 @@ class _MapPageState extends State<MapPage> {
     return "$hours : $minutes : $seconds";
   }
 
-  // Function to get greeting based on time of day
   String getGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return 'Good Morning,';
+    if (hour < 17) return 'Good Afternoon,';
+    return 'Good Evening,';
   }
 
   @override
   void dispose() {
-    durationTimer?.cancel(); // Cancel the timer
-    positionSubscription?.cancel(); // Cancel the position subscription
-    _mapController?.dispose(); // Dispose the map controller
+    durationTimer?.cancel();
+    positionSubscription?.cancel();
+    _mapController?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    Duration currentDuration =
-        DateTime.now().difference(startTime); // Calculate current duration
+    Duration currentDuration = DateTime.now().difference(startTime);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -147,18 +147,18 @@ class _MapPageState extends State<MapPage> {
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: '${getGreeting()}, ',
+                      text: '${getGreeting()} ',
                       style: GoogleFonts.poppins(
                         color: const Color(0xFF6D6BF8),
-                        fontSize: 18.sp,
+                        fontSize: 22.sp,
                       ),
                     ),
-                    TextSpan(
+                    const TextSpan(
                       text: 'Chandeera!',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 18.sp,
+                        fontSize: 20,
                       ),
                     ),
                   ],
@@ -173,142 +173,169 @@ class _MapPageState extends State<MapPage> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildMapView(),
-              SizedBox(height: 24.h),
-              _buildTimelineSection(currentDuration),
-              SizedBox(height: 24.h),
-              _buildJobsSection(),
-              SizedBox(height: 24.h),
-              _buildVehicleInfo(),
-            ],
-          ),
+        child: Stack(
+          children: [
+            // Map at the top
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: MediaQuery.of(context).size.height * 0.325,
+              child: _buildMapView(),
+            ),
+
+            // Content area
+            Positioned(
+              top: 220.h, // Adjusted top position
+              left: 0,
+              right: 0,
+              bottom: 20.h, // Space for steering wheel
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: SingleChildScrollView(
+                  // Add scroll capability
+
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Timeline header
+                      Center(
+                        child: Text(
+                          "Today's Timeline",
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 8.h), // Reduced spacing
+
+                      // Stats Row
+                      Row(
+                        children: [
+                          _buildStatItem(
+                            value: "${totalMileage.toStringAsFixed(1)} KM",
+                            label: "Current Mileage",
+                          ),
+                          Spacer(),
+                          _buildStatItem(
+                            icon: null,
+                            value: formatDuration(currentDuration),
+                            label: "Current Duration",
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12.h),
+
+                      // Jobs Button
+                      _buildActionButton("Jobs", onPressed: () {
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => JobPage()));
+                      }),
+                      SizedBox(height: 12.h),
+
+                      // Vehicle Info
+                      _buildVehicleInfoCard(),
+                      SizedBox(height: 12.h),
+
+                      // Vehicle Details
+                      _buildVehicleDetailsCard(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Steering Wheel
+            Positioned(
+              bottom: 20,
+              left: (MediaQuery.of(context).size.width - 60.w) / 2,
+              child: Container(
+                width: 60.w,
+                height: 60.w,
+                child: IconButton(
+                  icon: Image.asset(
+                    'assets/icons/steering.png',
+                    width: 50.w,
+                    height: 50.w,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {},
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildTimelineSection(Duration currentDuration) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  // Reusable stat item widget
+  Widget _buildStatItem(
+      {IconData? icon, required String value, required String label}) {
+    return Row(
       children: [
-        Center(
-          child: Text(
-            "Today's TimeLine",
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        SizedBox(height: 16.h),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        if (icon != null) Icon(icon, color: Colors.white, size: 24.sp),
+        if (icon != null) SizedBox(width: 8.w),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildMetricItem(
-                "${totalMileage.toStringAsFixed(1)} KM", "Current Mileage"),
-            _buildMetricItem(
-                formatDuration(currentDuration), "Current Duration"),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 16.sp, // Reduced font size
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                color: Colors.grey,
+                fontSize: 10.sp, // Reduced font size
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildMetricItem(String value, String label) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
+  // Reusable action button
+  Widget _buildActionButton(String text, {VoidCallback? onPressed}) {
+    return InkWell(
+      onTap: onPressed,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 12.h),
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 14.sp, // Reduced font size
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            color: const Color(0xFF6D6BF8),
-            fontSize: 14.sp,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildJobsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Jobs",
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        SizedBox(height: 16.h),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[900],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          padding: EdgeInsets.all(16.w),
-          child: Column(
-            children: [
-              _buildJobRow("License", "No attention needed"),
-              Divider(color: Colors.grey[800], height: 24.h),
-              _buildJobRow("Insurance", "No attention needed"),
-              Divider(color: Colors.grey[800], height: 24.h),
-              _buildJobRow("Vehicle Condition", "Attention needed",
-                  isAttention: true),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildJobRow(String title, String status, {bool isAttention = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontSize: 14.sp,
-          ),
-        ),
-        Text(
-          status,
-          style: GoogleFonts.poppins(
-            color: isAttention ? const Color(0xFF6D6BF8) : Colors.grey,
-            fontSize: 14.sp,
-            fontWeight: isAttention ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVehicleInfo() {
+  // Vehicle info card
+  Widget _buildVehicleInfoCard() {
     return Container(
+      padding: EdgeInsets.all(12.w), // Reduced padding
       decoration: BoxDecoration(
         color: Colors.grey[900],
         borderRadius: BorderRadius.circular(8),
       ),
-      padding: EdgeInsets.all(16.w),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,29 +344,85 @@ class _MapPageState extends State<MapPage> {
                 "KY-5590",
                 style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontSize: 16.sp,
+                  fontSize: 16.sp, // Reduced font size
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
-                "Toyota HACE",
+                "Toyota HIACE",
                 style: GoogleFonts.poppins(
                   color: Colors.grey,
-                  fontSize: 14.sp,
+                  fontSize: 12.sp, // Reduced font size
                 ),
               ),
             ],
           ),
-          TextButton(
-            onPressed: () {},
+          Spacer(),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Text(
               "View more info",
               style: GoogleFonts.poppins(
-                color: const Color(0xFF6D6BF8),
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                fontSize: 10.sp, // Reduced font size
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Vehicle details card
+  Widget _buildVehicleDetailsCard() {
+    return Container(
+      padding: EdgeInsets.all(12.w), // Reduced padding
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          _buildDetailRow("License", "No attention needed", Colors.green),
+          Divider(color: Colors.grey[800], height: 16.h), // Reduced height
+          _buildDetailRow("Insurance", "No attention needed", Colors.green),
+          Divider(color: Colors.grey[800], height: 16.h),
+          _buildDetailRow(
+              "Vehicle Condition", "Attention needed", Colors.orange),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String title, String value, Color color) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.h), // Reduced padding
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 12.sp, // Reduced font size
+            ),
+          ),
+          Row(
+            children: [
+              Text(
+                value,
+                style: GoogleFonts.poppins(
+                  color: color,
+                  fontSize: 12.sp, // Reduced font size
+                ),
+              ),
+              if (color == Colors.orange)
+                Icon(Icons.info_outline, color: color, size: 14.sp),
+            ],
           ),
         ],
       ),
@@ -359,7 +442,7 @@ class _MapPageState extends State<MapPage> {
             // Google Map
             GoogleMap(
               initialCameraPosition: const CameraPosition(
-                target: _sriLankaCenter,
+                target: _sriLankaIIT, // Center the map at IIT
                 zoom: 13, // Zoom level to show Sri Lanka
               ),
               onMapCreated: (GoogleMapController controller) async {

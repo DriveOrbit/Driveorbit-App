@@ -1,40 +1,28 @@
+import 'package:dashboard_ui/screens/vehicle_dasboard/map_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:dashboard_ui/main.dart'; // Import your main app
-import 'package:dashboard_ui/screens/vehicle_dasboard/map_page.dart'; // Import the map page
-
 void main() {
-  testWidgets('MyApp renders MapPage', (WidgetTester tester) async {
-    // Build the MyApp widget
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Test _buildMetricItem widget', (WidgetTester tester) async {
+    // Build the widget
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: MapPage(),
+        ),
+      ),
+    );
 
-    // Check if the MapPage widget is present
-    expect(find.byType(MapPage), findsOneWidget);
-  });
+    // Verify that the widget displays the correct value and label
+    expect(find.text('10.5 KM'), findsOneWidget); // Check for the value
+    expect(find.text('Current Mileage'), findsOneWidget); // Check for the label
 
-  testWidgets('Floating action button exists in MapPage',
-      (WidgetTester tester) async {
-    // Build the MapPage widget
-    await tester.pumpWidget(const MaterialApp(home: MapPage()));
+    // Verify the text styles
+    final valueText = tester.widget<Text>(find.text('10.5 KM'));
+    expect(valueText.style?.fontSize, 24); // Check font size of the value
+    expect(valueText.style?.fontWeight, FontWeight.bold); // Check font weight of the value
 
-    // Check if FloatingActionButton is present
-    expect(find.byType(FloatingActionButton), findsOneWidget);
-  });
-
-  testWidgets('Tapping FloatingActionButton calls _getCurrentLocation',
-      (WidgetTester tester) async {
-    // Build the MapPage widget
-    await tester.pumpWidget(const MaterialApp(home: MapPage()));
-
-    // Find the FloatingActionButton
-    final fab = find.byType(FloatingActionButton);
-    expect(fab, findsOneWidget);
-
-    // Tap the FloatingActionButton
-    await tester.tap(fab);
-    await tester.pump();
-
-    // Since we can't check the exact location fetching, we verify that the button is tappable
-    expect(fab, findsOneWidget);
+    final labelText = tester.widget<Text>(find.text('Current Mileage'));
+    expect(labelText.style?.fontSize, 14); // Check font size of the label
+    expect(labelText.style?.color, const Color(0xFF6D6BF8)); // Check color of the label
   });
 }
