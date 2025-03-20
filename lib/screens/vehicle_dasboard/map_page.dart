@@ -29,6 +29,10 @@ class _MapPageState extends State<MapPage> {
   String _firstName = '';
   String _profilePictureUrl = '';
   bool _isLoading = true;
+  bool _isMapFullScreen = false; // New state variable for map fullscreen mode
+  bool _isMapLoading = true; // Add this flag to track map loading state
+  bool _isTransitioning =
+      false; // Add a flag to prevent multiple map operations during transitions
 
   @override
   void initState() {
@@ -94,66 +98,97 @@ class _MapPageState extends State<MapPage> {
   }
 
   Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+    try {
+      bool serviceEnabled;
+      LocationPermission permission;
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Location services are disabled")),
-      );
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Location permissions are denied")),
-        );
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Location services are disabled")),
+          );
+          setState(() => _isMapLoading = false);
+        }
         return;
       }
-    }
 
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Location permissions are permanently denied")),
-      );
-      return;
-    }
-
-    Position initialPosition = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    setState(() {
-      _currentLocation =
-          LatLng(initialPosition.latitude, initialPosition.longitude);
-      previousPosition = initialPosition;
-    });
-
-    positionSubscription = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-      ),
-    ).listen((Position position) {
-      if (previousPosition != null) {
-        double distanceInMeters = Geolocator.distanceBetween(
-          previousPosition!.latitude,
-          previousPosition!.longitude,
-          position.latitude,
-          position.longitude,
-        );
-        totalMileage += distanceInMeters / 1000;
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Location permissions are denied")),
+            );
+            setState(() => _isMapLoading = false);
+          }
+          return;
+        }
       }
-      previousPosition = position;
-      setState(() {
-        _currentLocation = LatLng(position.latitude, position.longitude);
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text("Location permissions are permanently denied")),
+          );
+          setState(() => _isMapLoading = false);
+        }
+        return;
+      }
+
+      Position initialPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentLocation =
+              LatLng(initialPosition.latitude, initialPosition.longitude);
+          previousPosition = initialPosition;
+        });
+      }
+
+      positionSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10,
+        ),
+      ).listen((Position position) {
+        if (previousPosition != null) {
+          double distanceInMeters = Geolocator.distanceBetween(
+            previousPosition!.latitude,
+            previousPosition!.longitude,
+            position.latitude,
+            position.longitude,
+          );
+          totalMileage += distanceInMeters / 1000;
+        }
+        previousPosition = position;
+
+        if (mounted) {
+          setState(() {
+            _currentLocation = LatLng(position.latitude, position.longitude);
+
+            // If map controller exists, update camera position
+            if (_mapController != null) {
+              _mapController!.animateCamera(
+                CameraUpdate.newLatLng(_currentLocation!),
+              );
+            }
+          });
+        }
       });
-    });
+    } catch (e) {
+      debugPrint("Error getting location: $e");
+      if (mounted) {
+        setState(() => _isMapLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error getting location: $e")),
+        );
+      }
+    }
   }
 
   String formatDuration(Duration duration) {
@@ -171,6 +206,41 @@ class _MapPageState extends State<MapPage> {
     return 'Good Evening,';
   }
 
+  Future<void> _toggleFullScreen() async {
+    // Prevent multiple rapid toggling
+    if (_isTransitioning) return;
+
+    try {
+      setState(() {
+        _isTransitioning = true;
+      });
+
+      // First toggle the fullscreen flag
+      setState(() {
+        _isMapFullScreen = !_isMapFullScreen;
+      });
+
+      // Give the layout time to rebuild before manipulating the map
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Now safely update the camera if we have what we need
+      if (_mapController != null && _currentLocation != null && mounted) {
+        await _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(_currentLocation!, 15),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error toggling fullscreen: $e");
+    } finally {
+      // Ensure we clear the transitioning flag
+      if (mounted) {
+        setState(() {
+          _isTransitioning = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     durationTimer?.cancel();
@@ -182,120 +252,148 @@ class _MapPageState extends State<MapPage> {
   @override
   Widget build(BuildContext context) {
     Duration currentDuration = DateTime.now().difference(startTime);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        automaticallyImplyLeading: false,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Flexible(
-              child: RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '${getGreeting()} ',
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFF6D6BF8),
-                        fontSize: 22.sp,
+      appBar: _isMapFullScreen
+          ? null
+          : AppBar(
+              backgroundColor: Colors.black,
+              automaticallyImplyLeading: false,
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Flexible(
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${getGreeting()} ',
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF6D6BF8),
+                              fontSize: 22.sp,
+                            ),
+                          ),
+                          TextSpan(
+                            text: _firstName.isNotEmpty
+                                ? '$_firstName!'
+                                : 'Driver!',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20.sp,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    TextSpan(
-                      text: _firstName.isNotEmpty ? '$_firstName!' : 'Driver!',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20.sp,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  SizedBox(width: 9.w),
+                  _isLoading
+                      ? SizedBox(
+                          width: 40.w,
+                          height: 40.h,
+                          child: const CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : CircleAvatar(
+                          radius: 20.r,
+                          backgroundImage: _profilePictureUrl.isNotEmpty
+                              ? NetworkImage(_profilePictureUrl)
+                                  as ImageProvider
+                              : const AssetImage('assets/default_avatar.jpg'),
+                          onBackgroundImageError: (_, __) {
+                            setState(() {
+                              _profilePictureUrl =
+                                  'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
+                            });
+                          },
+                        ),
+                ],
               ),
             ),
-            SizedBox(width: 9.w),
-            _isLoading
-                ? SizedBox(
-                    width: 40.w,
-                    height: 40.h,
-                    child: const CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : CircleAvatar(
-                    radius: 20.r,
-                    backgroundImage: _profilePictureUrl.isNotEmpty
-                        ? NetworkImage(_profilePictureUrl) as ImageProvider
-                        : const AssetImage('assets/default_avatar.jpg'),
-                    onBackgroundImageError: (_, __) {
-                      setState(() {
-                        _profilePictureUrl =
-                            'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
-                      });
-                    },
-                  ),
-          ],
-        ),
-      ),
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            // Map at the top
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: MediaQuery.of(context).size.height * 0.35,
-              child: _buildMapView(),
-            ),
+            // Map section - expanded to full screen if in fullscreen mode
+            _isMapFullScreen
+                ? Expanded(
+                    child: _buildMapView(),
+                  )
+                : SizedBox(
+                    height: screenHeight * 0.35,
+                    width: double.infinity,
+                    child: _buildMapView(),
+                  ),
 
-            // Content area
-            Positioned(
-              top: 240.h,
-              left: 0,
-              right: 0,
-              bottom: 80.h,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
+            // Content area - only shown if not in fullscreen mode
+            if (!_isMapFullScreen)
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Timeline header
-                      Center(
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
                         child: Text(
                           "Today's Timeline",
                           style: GoogleFonts.poppins(
                             color: Colors.white,
-                            fontSize: 18.sp,
+                            fontSize: 20.sp,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                      SizedBox(height: 16.h),
 
-                      // Stats Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildStatItem(
-                            value: "${totalMileage.toStringAsFixed(1)} KM",
-                            label: "Current Mileage",
-                          ),
-                          _buildStatItem(
-                            icon: null,
-                            value: formatDuration(currentDuration),
-                            label: "Current Duration",
-                          ),
-                        ],
+                      // Stats Row - Enhanced design
+                      Container(
+                        width: double.infinity,
+                        margin: EdgeInsets.only(bottom: 20.h),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Expanded(
+                              child: _buildStatItem(
+                                icon: Icons.speed_rounded,
+                                value: "${totalMileage.toStringAsFixed(1)} KM",
+                                label: "Current Mileage",
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF6D6BF8),
+                                    Color(0xFF5856D6)
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 12.w), // Space between the stats
+                            Expanded(
+                              child: _buildStatItem(
+                                icon: Icons.timer_outlined,
+                                value: formatDuration(currentDuration),
+                                label: "Current Duration",
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF4CAF50),
+                                    Color(0xFF2E7D32)
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      SizedBox(height: 20.h),
 
-                      // Jobs Button
-                      _buildActionButton("Jobs", onPressed: () {
+                      // Jobs Button - Moved outside of ScrollView to make it fixed
+                      _buildActionButton("View Job Assignments", onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => const JobAssignedPage(),
@@ -304,105 +402,222 @@ class _MapPageState extends State<MapPage> {
                       }),
                       SizedBox(height: 20.h),
 
-                      // Vehicle Info
-                      _buildVehicleInfoCard(),
-                      SizedBox(height: 12.h),
-
-                      // Vehicle Details
-                      _buildVehicleDetailsCard(),
+                      // Content scrollable area
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Vehicle Info
+                              _buildVehicleInfoCard(),
+                              // Add some bottom padding for scrolling
+                              SizedBox(height: 16.h),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
-            ),
 
-            // Steering Wheel
-            Positioned(
-              bottom: 20,
-              left: (MediaQuery.of(context).size.width - 60.w) / 2,
-              child: SizedBox(
-                width: 60.w,
-                height: 60.w,
-                child: IconButton(
-                  icon: Image.asset(
-                    'assets/icons/steering.png',
-                    width: 50.w,
-                    height: 50.w,
-                    color: Colors.white,
+            // Steering Wheel - only shown if not in fullscreen mode
+            if (!_isMapFullScreen)
+              Container(
+                height: 100.h, // Increased from 80.h
+                alignment: Alignment.center,
+                child: SizedBox(
+                  width: 80.w, // Increased from 60.w
+                  height: 80.w, // Increased from 60.w
+                  child: IconButton(
+                    icon: Image.asset(
+                      'assets/icons/steering.png',
+                      width: 70.w, // Increased from 50.w
+                      height: 70.w, // Increased from 50.w
+                      color: Colors.white,
+                    ),
+                    onPressed: () {},
                   ),
-                  onPressed: () {},
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  // Reusable stat item widget
-  Widget _buildStatItem(
-      {IconData? icon, required String value, required String label}) {
-    return Row(
-      children: [
-        if (icon != null) Icon(icon, color: Colors.white, size: 24.sp),
-        if (icon != null) SizedBox(width: 8.w),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 16.sp, // Reduced font size
-                fontWeight: FontWeight.bold,
-              ),
+  // Reusable stat item widget - completely redesigned
+  Widget _buildStatItem({
+    IconData? icon,
+    required String value,
+    required String label,
+    LinearGradient? gradient,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 12.w),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null)
+                Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 24.sp,
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
             ),
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                color: Colors.grey,
-                fontSize: 10.sp, // Reduced font size
-              ),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w500,
             ),
-          ],
-        ),
-      ],
+          ),
+          // Small indicator to show active tracking
+          SizedBox(height: 6.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 6.w,
+                height: 6.w,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.8),
+                      blurRadius: 4,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 4.w),
+              Text(
+                "TRACKING",
+                style: GoogleFonts.poppins(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 8.sp,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  // Reusable action button
+  // Reusable action button - enhanced style
   Widget _buildActionButton(String text, {VoidCallback? onPressed}) {
-    return InkWell(
-      onTap: onPressed,
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 12.h),
-        decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text(
-            text,
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 14.sp, // Reduced font size
-              fontWeight: FontWeight.w600,
-            ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(15), // Increased radius
+        splashColor: const Color(0xFF6D6BF8).withOpacity(0.4),
+        highlightColor: Colors.grey[800],
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 18.h),
+          decoration: BoxDecoration(
+            color: Colors.grey[850], // Slightly lighter background
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+                color: const Color(0xFF6D6BF8), width: 2), // Thicker border
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6D6BF8).withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.work_outline,
+                color: const Color(0xFF6D6BF8),
+                size: 22.sp, // Slightly larger icon
+              ),
+              SizedBox(width: 12.w), // More spacing
+              Text(
+                text,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5, // Better letter spacing
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // Vehicle info card
+  // Vehicle info card - enhanced layout
   Widget _buildVehicleInfoCard() {
     return Container(
-      padding: EdgeInsets.all(12.w), // Reduced padding
+      padding: EdgeInsets.all(18.w), // More padding
       decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(8),
+        gradient: LinearGradient(
+          // Gradient background
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.grey[900]!,
+            Colors.grey[850]!,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+            spreadRadius: 1,
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -413,85 +628,59 @@ class _MapPageState extends State<MapPage> {
                 "KY-5590",
                 style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontSize: 16.sp, // Reduced font size
+                  fontSize: 20.sp, // Larger font size
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                 ),
               ),
+              SizedBox(height: 4.h), // Space between elements
               Text(
                 "Toyota HIACE",
                 style: GoogleFonts.poppins(
-                  color: Colors.grey,
-                  fontSize: 12.sp, // Reduced font size
+                  color: Colors.grey[400], // Lighter grey for better contrast
+                  fontSize: 14.sp,
                 ),
               ),
             ],
           ),
           const Spacer(),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              "View more info",
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 10.sp, // Reduced font size
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Vehicle details card
-  Widget _buildVehicleDetailsCard() {
-    return Container(
-      padding: EdgeInsets.all(12.w), // Reduced padding
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          _buildDetailRow("License", "No attention needed", Colors.green),
-          Divider(color: Colors.grey[800], height: 16.h), // Reduced height
-          _buildDetailRow("Insurance", "No attention needed", Colors.green),
-          Divider(color: Colors.grey[800], height: 16.h),
-          _buildDetailRow(
-              "Vehicle Condition", "Attention needed", Colors.orange),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String title, String value, Color color) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4.h), // Reduced padding
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 12.sp, // Reduced font size
-            ),
-          ),
-          Row(
-            children: [
-              Text(
-                value,
-                style: GoogleFonts.poppins(
-                  color: color,
-                  fontSize: 12.sp, // Reduced font size
+          InkWell(
+            onTap: () {
+              // Navigate to vehicle details page or show dialog
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Vehicle details will be available soon"),
+                  duration: Duration(seconds: 2),
                 ),
+              );
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFF6D6BF8), width: 1),
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.grey[850], // Slightly lighter background
               ),
-              if (color == Colors.orange)
-                Icon(Icons.info_outline, color: color, size: 14.sp),
-            ],
+              child: Row(
+                children: [
+                  Text(
+                    "View more info",
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500, // Slightly bolder
+                    ),
+                  ),
+                  SizedBox(width: 4.w),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Color(0xFF6D6BF8),
+                    size: 12,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -499,84 +688,252 @@ class _MapPageState extends State<MapPage> {
   }
 
   Widget _buildMapView() {
-    return Container(
-      height: 300,
-      margin: const EdgeInsets.only(top: 1), // Remove left and right margins
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-      ),
-      child: ClipRRect(
-        child: Stack(
-          children: [
-            // Google Map
-            GoogleMap(
-              initialCameraPosition: const CameraPosition(
-                target: _sriLankaIIT, // Center the map at IIT
-                zoom: 13, // Zoom level to show Sri Lanka
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(0),
+      child: Stack(
+        children: [
+          // Show a loading indicator while map is initializing
+          if (_isMapLoading)
+            Container(
+              color: Colors.grey[900],
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      color: const Color(0xFF6D6BF8),
+                    ),
+                    SizedBox(height: 12.h),
+                    Text(
+                      "Loading map...",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Google Map with improved error handling
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: GoogleMap(
+              key: ValueKey<bool>(
+                  _isMapFullScreen), // Recreate map on fullscreen toggle
+              initialCameraPosition: CameraPosition(
+                target: _currentLocation ?? _sriLankaIIT,
+                zoom: 15,
               ),
               onMapCreated: (GoogleMapController controller) async {
-                _mapController = controller;
+                try {
+                  _mapController = controller;
 
-                // Load the dark mode style from the JSON file
-                String style = await DefaultAssetBundle.of(context)
-                    .loadString('assets/maptheme/dark_theme.json');
-                _mapController?.setMapStyle(style);
+                  // Load the dark mode style from the JSON file
+                  try {
+                    String style = await DefaultAssetBundle.of(context)
+                        .loadString('assets/maptheme/dark_theme.json');
+                    await _mapController?.setMapStyle(style);
+                  } catch (e) {
+                    debugPrint("Error loading map style: $e");
+                    // Continue without custom style if it fails to load
+                  }
+
+                  // Mark map as loaded
+                  if (mounted) {
+                    setState(() {
+                      _isMapLoading = false;
+                    });
+                  }
+
+                  // If we have a location, move camera to it
+                  if (_currentLocation != null && mounted) {
+                    await Future.delayed(const Duration(milliseconds: 300));
+                    _mapController?.animateCamera(
+                      CameraUpdate.newLatLngZoom(_currentLocation!, 15),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint("Error setting up map: $e");
+                  if (mounted) {
+                    setState(() => _isMapLoading = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Error initializing map: $e")),
+                    );
+                  }
+                }
               },
-              markers: {
-                if (_currentLocation != null)
-                  Marker(
-                    markerId: const MarkerId("current_location"),
-                    position: _currentLocation!,
-                    icon: BitmapDescriptor.defaultMarkerWithHue(
-                        BitmapDescriptor.hueRed),
-                  ),
-              },
-              myLocationEnabled:
-                  true, // Enables the red dot for user's location
-              myLocationButtonEnabled: true, // Enables the "my location" button
+              myLocationEnabled: true,
+              myLocationButtonEnabled: false, // Hide default location button
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
+              compassEnabled: true,
+              mapType: MapType.normal,
             ),
+          ),
 
-            // Dark shade at the top
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                height: 30, // Adjust the height of the shade
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withOpacity(1.0),
-                      Colors.transparent,
-                    ],
-                  ),
+          // Overlay for error cases but show map is still loading
+          if (_isMapLoading)
+            Container(
+              color: Colors.black.withOpacity(0.6),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: const Color(0xFF6D6BF8),
                 ),
               ),
             ),
 
-            // Dark shade at the bottom
+          // Show a loading indicator during transitions
+          if (_isTransitioning)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: const Color(0xFF6D6BF8),
+                ),
+              ),
+            ),
+
+          // Custom location button
+          Positioned(
+            right: 16,
+            bottom: _isMapFullScreen
+                ? 70
+                : 16, // Position higher when in fullscreen mode to avoid back button
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFF6D6BF8),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.my_location,
+                  color: Color(0xFF6D6BF8),
+                ),
+                onPressed: () {
+                  if (_mapController != null &&
+                      _currentLocation != null &&
+                      !_isTransitioning) {
+                    _mapController!.animateCamera(
+                      CameraUpdate.newLatLngZoom(_currentLocation!, 15),
+                    );
+                  }
+                },
+                tooltip: 'My Location',
+              ),
+            ),
+          ),
+
+          // Expand/Contract button - update to use our new toggle method
+          Positioned(
+            left: 16,
+            top: 16,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFF6D6BF8),
+                  width: 1,
+                ),
+              ),
+              child: IconButton(
+                icon: Icon(
+                  _isMapFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                  color: Colors.white,
+                ),
+                onPressed: _isTransitioning ? null : _toggleFullScreen,
+                tooltip: _isMapFullScreen ? 'Exit fullscreen' : 'Fullscreen',
+              ),
+            ),
+          ),
+
+          // Dark shade at the top
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 30,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(1.0),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Dark shade at the bottom
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 30,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withOpacity(1.0),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Back button when in fullscreen mode
+          if (_isMapFullScreen)
             Positioned(
-              bottom: 0,
+              bottom: 16,
               left: 0,
               right: 0,
-              child: Container(
-                height: 30, // Adjust the height of the shade
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withOpacity(1.0),
-                      Colors.transparent,
-                    ],
+              child: Center(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: const Color(0xFF6D6BF8),
+                      width: 1,
+                    ),
+                  ),
+                  child: TextButton.icon(
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                    ),
+                    label: Text(
+                      "Back to Dashboard",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    onPressed: _isTransitioning ? null : _toggleFullScreen,
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
