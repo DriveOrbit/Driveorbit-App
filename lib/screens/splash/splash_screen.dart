@@ -20,13 +20,6 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _rotationAnimation;
   late Animation<double> _pulseAnimation;
 
-  // For the wave animation
-  final List<Color> _waveColors = [
-    const Color(0xFF6D6BF8).withOpacity(0.3),
-    const Color(0xFF54C1D5).withOpacity(0.4),
-    const Color(0xFF5B59A1).withOpacity(0.5),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -174,63 +167,47 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Wave animation at the bottom
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) {
-                return CustomPaint(
-                  size: Size(MediaQuery.of(context).size.width, 100),
-                  painter: WavePainter(
-                    animationValue: _animationController.value,
-                    waveColors: _waveColors,
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Main content
-          Center(
-            child: AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Logo with rotation, scale, and pulse animations
-                      Transform.rotate(
-                        angle:
-                            math.sin(_rotationAnimation.value) * math.pi / 10,
-                        child: Transform.scale(
-                          scale: _scaleAnimation.value,
-                          child: Container(
-                            width: 160,
-                            height: 160,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF6D6BF8)
-                                      .withOpacity(0.3 * _pulseAnimation.value),
-                                  blurRadius: 20 * _pulseAnimation.value,
-                                  spreadRadius: 5 * _pulseAnimation.value,
-                                ),
-                              ],
+      body: Center(
+        child: AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            return FadeTransition(
+              opacity: _fadeAnimation,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo with rotation, scale, and pulse animations
+                  Transform.rotate(
+                    angle: math.sin(_rotationAnimation.value) * math.pi / 10,
+                    child: Transform.scale(
+                      scale: _scaleAnimation.value,
+                      child: Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF6D6BF8)
+                                  .withOpacity(0.3 * _pulseAnimation.value),
+                              blurRadius: 20 * _pulseAnimation.value,
+                              spreadRadius: 5 * _pulseAnimation.value,
                             ),
-                            child: Image.asset(
-                              'assets/logo.png',
-                              width: 150,
-                              height: 150,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                              80), // Half of width/height for circle
+                          child: Image.asset(
+                            'assets/logo/Driveorbitlogo.png',
+                            width: 150,
+                            height: 150,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const CircleAvatar(
+                              radius: 75,
+                              backgroundColor: Colors.black,
+                              child: Icon(
                                 Icons.directions_car,
                                 size: 100,
                                 color: Color(0xFF6D6BF8),
@@ -239,127 +216,83 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 40),
-                      // Enhanced progress indicator with rotation
-                      SizedBox(
-                        width: 60,
-                        height: 60,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Rotating outer circle
-                            Transform.rotate(
-                              angle: _animationController.value * 2 * math.pi,
-                              child: const CircularProgressIndicator(
-                                color: Color(0xFF6D6BF8),
-                                strokeWidth: 4,
-                                value: null,
-                              ),
-                            ),
-                            // Pulsating inner circle
-                            Container(
-                              width: 20 * _pulseAnimation.value,
-                              height: 20 * _pulseAnimation.value,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFF54C1D5).withOpacity(0.7),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                      // App name with slide-up animation
-                      Transform.translate(
-                        offset: Offset(0, 20 * (1 - _fadeAnimation.value)),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'DriveOrbit',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Drive Smarter, Not Harder',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.7),
-                                fontSize: 16,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Loading text with fading animation
-                      Opacity(
-                        opacity: math
-                            .sin(_animationController.value * math.pi)
-                            .abs(),
-                        child: const Text(
-                          'Loading...',
-                          style: TextStyle(
-                            color: Color(0xFF54C1D5),
-                            fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  // Enhanced progress indicator with rotation
+                  SizedBox(
+                    width: 60,
+                    height: 60,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Rotating outer circle
+                        Transform.rotate(
+                          angle: _animationController.value * 2 * math.pi,
+                          child: const CircularProgressIndicator(
+                            color: Color(0xFF6D6BF8),
+                            strokeWidth: 4,
+                            value: null,
                           ),
                         ),
-                      ),
-                    ],
+                        // Pulsating inner circle
+                        Container(
+                          width: 20 * _pulseAnimation.value,
+                          height: 20 * _pulseAnimation.value,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFF54C1D5).withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+                  const SizedBox(height: 30),
+                  // App name with slide-up animation
+                  Transform.translate(
+                    offset: Offset(0, 20 * (1 - _fadeAnimation.value)),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'DriveOrbit',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Drive Smarter, Not Harder',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 16,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Loading text with fading animation
+                  Opacity(
+                    opacity:
+                        math.sin(_animationController.value * math.pi).abs(),
+                    child: const Text(
+                      'Loading...',
+                      style: TextStyle(
+                        color: Color(0xFF54C1D5),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
-}
-
-// Wave animation painter
-class WavePainter extends CustomPainter {
-  final double animationValue;
-  final List<Color> waveColors;
-
-  WavePainter({required this.animationValue, required this.waveColors});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (int i = 0; i < waveColors.length; i++) {
-      final wavePaint = Paint()..color = waveColors[i];
-
-      final path = Path();
-
-      // Wave parameters
-      final waveHeight = size.height * 0.3;
-      const waveCount = 3.0; // Number of complete waves
-      final phaseShift =
-          animationValue * 2 * math.pi + (i * math.pi / waveColors.length);
-
-      // Start at bottom left
-      path.moveTo(0, size.height);
-
-      // Draw wave
-      for (double x = 0; x <= size.width; x++) {
-        final y =
-            math.sin((x / size.width * waveCount * 2 * math.pi) + phaseShift) *
-                waveHeight;
-        path.lineTo(x, size.height - waveHeight - y);
-      }
-
-      // Complete the path
-      path.lineTo(size.width, size.height);
-      path.close();
-
-      canvas.drawPath(path, wavePaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(WavePainter oldDelegate) => true;
 }
