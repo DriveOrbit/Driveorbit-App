@@ -1,3 +1,4 @@
+import 'package:driveorbit_app/screens/vehicle_dasboard/driver_button.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -253,7 +254,6 @@ class _MapPageState extends State<MapPage> {
   Widget build(BuildContext context) {
     Duration currentDuration = DateTime.now().difference(startTime);
     final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -446,7 +446,13 @@ class _MapPageState extends State<MapPage> {
                       height: 70.w, // Increased from 50.w
                       color: Colors.white,
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => PanicButtonPage()),
+                      );
+                    },
                   ),
                 ),
               ),
