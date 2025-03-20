@@ -3,6 +3,7 @@ import 'package:driveorbit_app/models/job_details_entity.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui';
 
 class CompletedJobCard extends StatelessWidget {
   final JobDetailsEntity job;
@@ -22,111 +23,128 @@ class CompletedJobCard extends StatelessWidget {
     final String formattedDate = dateFormatter.format(job.date);
     final String formattedTime = timeFormatter.format(job.arrivedTime);
 
-    return Card(
-      margin: EdgeInsets.only(bottom: 8.h),
-      color: Colors.grey[900],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10.r),
-        side: BorderSide(
-          color: Colors.green.withOpacity(0.4),
-          width: 1,
-        ),
-      ),
-      elevation: 2,
-      child: InkWell(
-        onTap: onTap ?? () => _showCompletedJobDetails(context),
-        borderRadius: BorderRadius.circular(10.r),
-        child: Padding(
-          padding: EdgeInsets.all(12.w),
-          child: Row(
-            children: [
-              // Green checkmark indicator
-              Container(
-                width: 24.w,
-                height: 24.h,
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check,
-                  color: Colors.green,
-                  size: 14.sp,
-                ),
-              ),
-              SizedBox(width: 12.w),
-
-              // Job details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10.r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          margin: EdgeInsets.only(bottom: 8.h),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(
+              color: Colors.green.withOpacity(0.4),
+              width: 1,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap ?? () => _showCompletedJobDetails(context),
+              borderRadius: BorderRadius.circular(10.r),
+              child: Padding(
+                padding: EdgeInsets.all(12.w),
+                child: Row(
                   children: [
-                    // Route information in a single line
-                    Text(
-                      '${job.startLocation} → ${job.endLocation}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                    // Green checkmark indicator
+                    Container(
+                      width: 24.w,
+                      height: 24.h,
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.2),
+                        shape: BoxShape.circle,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      child: Icon(
+                        Icons.check,
+                        color: Colors.green,
+                        size: 14.sp,
+                      ),
                     ),
-                    SizedBox(height: 4.h),
+                    SizedBox(width: 12.w),
 
-                    // Date, time, and distance
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 12.sp,
-                          color: Colors.grey[400],
-                        ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          formattedDate,
-                          style: GoogleFonts.poppins(
-                            fontSize: 12.sp,
-                            color: Colors.grey[400],
+                    // Job details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Route information in a single line
+                          Text(
+                            '${job.startLocation} → ${job.endLocation}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Icon(
-                          Icons.access_time,
-                          size: 12.sp,
-                          color: Colors.grey[400],
-                        ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          formattedTime,
-                          style: GoogleFonts.poppins(
-                            fontSize: 12.sp,
-                            color: Colors.grey[400],
+                          SizedBox(height: 4.h),
+
+                          // Date, time, and distance - Fixed with Expanded widgets
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today,
+                                size: 12.sp,
+                                color: Colors.grey[400],
+                              ),
+                              SizedBox(width: 4.w),
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  formattedDate,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12.sp,
+                                    color: Colors.grey[400],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Icon(
+                                Icons.access_time,
+                                size: 12.sp,
+                                color: Colors.grey[400],
+                              ),
+                              SizedBox(width: 4.w),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  formattedTime,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12.sp,
+                                    color: Colors.grey[400],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
+                        ],
+                      ),
+                    ),
+
+                    // Distance chip - Added a fixed width to prevent overflow
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(16.r),
+                      ),
+                      child: Text(
+                        '${job.distance.toStringAsFixed(1)} km',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.blue,
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
-
-              // Distance chip
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-                child: Text(
-                  '${job.distance.toStringAsFixed(1)} km',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.blue,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

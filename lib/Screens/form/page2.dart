@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:driveorbit_app/screens/vehicle_dasboard/map_page.dart'; // Import map page
+import 'package:image_picker/image_picker.dart'; // Add this import
+import 'dart:io'; // Add this import
 
 class MileageForm extends StatefulWidget {
   const MileageForm({super.key});
@@ -12,10 +14,20 @@ class _MileageFormState extends State<MileageForm>
     with SingleTickerProviderStateMixin {
   TextEditingController mileageController = TextEditingController();
   bool? isFullTank;
+  File? _dashboardImage; // Add variable to store image
+  bool _isPhotoTaken = false; // Track if photo is taken
+
+  // Update isFormValid to require photo
   bool get isFormValid =>
-      mileageController.text.trim().isNotEmpty && isFullTank != null;
+      mileageController.text.trim().isNotEmpty &&
+      isFullTank != null &&
+      _isPhotoTaken;
+
   late AnimationController _animationController;
   late Animation<Alignment> _animation;
+
+  // Image picker instance
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -38,6 +50,30 @@ class _MileageFormState extends State<MileageForm>
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  // Add method to handle camera functionality
+  Future<void> _takeDashboardPhoto() async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.rear,
+        imageQuality: 85,
+      );
+
+      if (photo != null) {
+        setState(() {
+          _dashboardImage = File(photo.path);
+          _isPhotoTaken = true;
+        });
+      }
+    } catch (e) {
+      // Handle any errors
+      debugPrint('Error taking photo: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to take photo')),
+      );
+    }
   }
 
   void _handleFuelStatusTap(bool value) {
@@ -148,38 +184,70 @@ class _MileageFormState extends State<MileageForm>
               SizedBox(
                 height: 80, // Fixed height
                 child: GestureDetector(
-                  onTap: () {/* Add camera logic */},
+                  onTap: _takeDashboardPhoto, // Call camera method
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: _isPhotoTaken
+                          ? const Color(0xFF6D6BF8).withOpacity(0.2)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(15),
+                      border: _isPhotoTaken
+                          ? Border.all(color: const Color(0xFF6D6BF8), width: 2)
+                          : Border.all(
+                              color: isFormValid && !_isPhotoTaken
+                                  ? Colors.red
+                                  : Colors.transparent,
+                              width: 2),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset(
-                          'assets/icons/Camera.png',
-                          width: 40,
-                          height: 40,
-                        ),
+                        _isPhotoTaken
+                            ? Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF6D6BF8),
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              )
+                            : Image.asset(
+                                'assets/icons/Camera.png',
+                                width: 40,
+                                height: 40,
+                              ),
                         const SizedBox(width: 15),
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              "Take a photo of dashboard",
+                            Text(
+                              _isPhotoTaken
+                                  ? "Photo taken successfully"
+                                  : "Take a photo of dashboard",
                               style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black),
+                                  color: _isPhotoTaken
+                                      ? Colors.white
+                                      : Colors.black),
                             ),
                             Text(
-                              "Please take a clear photo",
+                              _isPhotoTaken
+                                  ? "Tap to retake photo"
+                                  : "Please take a clear photo",
                               style: TextStyle(
-                                  fontSize: 12, color: Colors.grey.shade600),
+                                  fontSize: 12,
+                                  color: _isPhotoTaken
+                                      ? Colors.white70
+                                      : Colors.grey.shade600),
                             ),
                           ],
                         ),
@@ -235,31 +303,52 @@ class _MileageFormState extends State<MileageForm>
 
               // Next Button
               Container(
-                height: 100, // Fixed height
+                // Remove fixed height to allow container to adapt to content
+                // height: 100, // Fixed height - REMOVE THIS
+                padding: const EdgeInsets.symmetric(vertical: 10.0),
                 alignment: Alignment.center,
-                child: SizedBox(
-                  width: 80,
-                  height: 80,
-                  child: IconButton(
-                    onPressed: isFormValid
-                        ? () {
-                            // Navigate to Map page when form is complete
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const MapPage(),
-                              ),
-                            );
-                          }
-                        : null,
-                    icon: Image.asset(
-                      'assets/icons/Back.png',
-                      width: 60,
-                      color: isFormValid
-                          ? Colors.white // Active icon color
-                          : Colors.grey, // Disabled icon color
+                child: Column(
+                  mainAxisSize: MainAxisSize.min, // Use minimum space needed
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (!isFormValid)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          _getMissingRequirementMessage(),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center, // Center the text
+                        ),
+                      ),
+                    SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: IconButton(
+                        onPressed: isFormValid
+                            ? () {
+                                // Navigate to Map page when form is complete
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const MapPage(),
+                                  ),
+                                );
+                              }
+                            : null,
+                        icon: Image.asset(
+                          'assets/icons/Back.png',
+                          width: 60,
+                          color: isFormValid
+                              ? Colors.white // Active icon color
+                              : Colors.grey, // Disabled icon color
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ],
@@ -267,6 +356,20 @@ class _MileageFormState extends State<MileageForm>
         ),
       ),
     );
+  }
+
+  // Add a helper method to get appropriate error message
+  String _getMissingRequirementMessage() {
+    if (mileageController.text.trim().isEmpty) {
+      return "Please enter current mileage";
+    }
+    if (isFullTank == null) {
+      return "Please select fuel status";
+    }
+    if (!_isPhotoTaken) {
+      return "Please take a dashboard photo";
+    }
+    return "";
   }
 
   Widget _buildFuelStatusOptions() {
