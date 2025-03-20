@@ -85,6 +85,9 @@ flutter:
     - assets/
     - assets/logo/
     - assets/icons/
+    - assets/maptheme/
+    - assets/mock_vehicledetails.json
+    - assets/mock_notifications.json
 
 flutter_icons:
   android: true

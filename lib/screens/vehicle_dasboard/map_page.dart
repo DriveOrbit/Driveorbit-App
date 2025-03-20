@@ -1,4 +1,7 @@
+import 'package:driveorbit_app/models/notification_model.dart';
 import 'package:driveorbit_app/screens/vehicle_dasboard/driver_button.dart';
+import 'package:driveorbit_app/services/notification_service.dart';
+import 'package:driveorbit_app/widgets/notification_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -17,7 +20,7 @@ class MapPage extends StatefulWidget {
   State<MapPage> createState() => _MapPageState();
 }
 
-class _MapPageState extends State<MapPage> {
+class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   static const LatLng _sriLankaIIT = LatLng(6.9016, 79.8602);
   GoogleMapController? _mapController;
   LatLng? _currentLocation;
@@ -35,6 +38,16 @@ class _MapPageState extends State<MapPage> {
   bool _isTransitioning =
       false; // Add a flag to prevent multiple map operations during transitions
 
+  // Notification related variables
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  List<NotificationModel> _notifications = [];
+  bool _hasUnreadNotifications = false;
+  final NotificationService _notificationService = NotificationService();
+
+  // Add animation controllers for notification hint
+  AnimationController? _notificationHintController;
+  bool _hasShownNotificationTutorial = false;
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +57,95 @@ class _MapPageState extends State<MapPage> {
     });
     _getCurrentLocation();
     _loadUserData();
+    _loadNotifications();
+
+    // Initialize notification hint animation controller
+    _notificationHintController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    // Check if we've shown the tutorial before
+    _checkNotificationTutorial();
+  }
+
+  Future<void> _checkNotificationTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    _hasShownNotificationTutorial =
+        prefs.getBool('has_shown_notification_tutorial') ?? false;
+
+    // Show tutorial if it's first time and we have unread notifications
+    if (!_hasShownNotificationTutorial && _hasUnreadNotifications) {
+      // Wait for the UI to build first
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_isMapFullScreen) {
+          _showNotificationTutorial();
+        }
+      });
+    }
+  }
+
+  void _showNotificationTutorial() {
+    // Only show in non-fullscreen mode
+    if (_isMapFullScreen) return;
+
+    // Start animating the notification hint
+    _notificationHintController!.repeat(reverse: true);
+
+    // Show tutorial overlay
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.swipe_right, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Swipe right from the left edge to view notifications',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 5),
+          backgroundColor: const Color(0xFF6D6BF8),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+          action: SnackBarAction(
+            label: 'GOT IT',
+            textColor: Colors.white,
+            onPressed: () async {
+              // Stop the hint animation
+              _notificationHintController?.stop();
+
+              // Mark as shown
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('has_shown_notification_tutorial', true);
+              _hasShownNotificationTutorial = true;
+
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+        ),
+      );
+    });
+
+    // After 15 seconds, automatically dismiss the tutorial
+    Future.delayed(const Duration(seconds: 15), () async {
+      if (mounted && _notificationHintController?.isAnimating == true) {
+        _notificationHintController?.stop();
+
+        // Mark as shown
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('has_shown_notification_tutorial', true);
+        _hasShownNotificationTutorial = true;
+      }
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -95,6 +197,33 @@ class _MapPageState extends State<MapPage> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _loadNotifications() async {
+    _notifications = await _notificationService.loadSampleNotifications();
+    if (mounted) {
+      setState(() {
+        _hasUnreadNotifications = _notificationService.hasUnreadNotifications();
+      });
+    }
+  }
+
+  void _markAsRead(String id) {
+    _notificationService.markAsRead(id);
+    if (mounted) {
+      setState(() {
+        _hasUnreadNotifications = _notificationService.hasUnreadNotifications();
+      });
+    }
+  }
+
+  void _markAllAsRead() {
+    _notificationService.markAllAsRead();
+    if (mounted) {
+      setState(() {
+        _hasUnreadNotifications = false;
+      });
     }
   }
 
@@ -247,7 +376,13 @@ class _MapPageState extends State<MapPage> {
     durationTimer?.cancel();
     positionSubscription?.cancel();
     _mapController?.dispose();
+    _notificationHintController?.dispose();
     super.dispose();
+  }
+
+  // Get count of unread notifications
+  int get _unreadNotificationCount {
+    return _notifications.where((notification) => !notification.isRead).length;
   }
 
   @override
@@ -256,7 +391,19 @@ class _MapPageState extends State<MapPage> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.black,
+      // Special handling for map page - conditionally enable edge swipe
+      drawerEnableOpenDragGesture:
+          !_isMapFullScreen, // Only enable when not in fullscreen
+      drawerEdgeDragWidth:
+          60, // Wider area to detect swipes when not in fullscreen
+      drawer: NotificationDrawer(
+        notifications: _notifications,
+        onMarkAsRead: _markAsRead,
+        onMarkAllAsRead: _markAllAsRead,
+        hasUnreadNotifications: _hasUnreadNotifications,
+      ),
       appBar: _isMapFullScreen
           ? null
           : AppBar(
@@ -300,164 +447,262 @@ class _MapPageState extends State<MapPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : CircleAvatar(
-                          radius: 20.r,
-                          backgroundImage: _profilePictureUrl.isNotEmpty
-                              ? NetworkImage(_profilePictureUrl)
-                                  as ImageProvider
-                              : const AssetImage('assets/default_avatar.jpg'),
-                          onBackgroundImageError: (_, __) {
-                            setState(() {
-                              _profilePictureUrl =
-                                  'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
-                            });
-                          },
+                      : Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 20.r,
+                              backgroundImage: _profilePictureUrl.isNotEmpty
+                                  ? NetworkImage(_profilePictureUrl)
+                                      as ImageProvider
+                                  : const AssetImage(
+                                      'assets/default_avatar.jpg'),
+                              onBackgroundImageError: (_, __) {
+                                setState(() {
+                                  _profilePictureUrl =
+                                      'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
+                                });
+                              },
+                            ),
+                            // Notification indicator on avatar
+                            if (_hasUnreadNotifications)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.black,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                 ],
               ),
+              // Remove the actions section that contained the notification button
             ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Map section - expanded to full screen if in fullscreen mode
-            _isMapFullScreen
-                ? Expanded(
-                    child: _buildMapView(),
-                  )
-                : SizedBox(
-                    height: screenHeight * 0.35,
-                    width: double.infinity,
-                    child: _buildMapView(),
+      body: Stack(
+        children: [
+          // Main content
+          SafeArea(
+            child: Column(
+              children: [
+                // Map section - expanded to full screen if in fullscreen mode
+                _isMapFullScreen
+                    ? Expanded(
+                        child: _buildMapView(),
+                      )
+                    : SizedBox(
+                        height: screenHeight * 0.35,
+                        width: double.infinity,
+                        child: _buildMapView(),
+                      ),
+
+                // Content area - only shown if not in fullscreen mode
+                if (!_isMapFullScreen)
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
+                      child: Column(
+                        children: [
+                          // Timeline header
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16.h),
+                            child: Text(
+                              "Today's Timeline",
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+
+                          // Stats Row - Enhanced design
+                          Container(
+                            width: double.infinity,
+                            margin: EdgeInsets.only(bottom: 20.h),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Expanded(
+                                  child: _buildStatItem(
+                                    icon: Icons.speed_rounded,
+                                    value:
+                                        "${totalMileage.toStringAsFixed(1)} KM",
+                                    label: "Current Mileage",
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF6D6BF8),
+                                        Color(0xFF5856D6)
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                    width: 12.w), // Space between the stats
+                                Expanded(
+                                  child: _buildStatItem(
+                                    icon: Icons.timer_outlined,
+                                    value: formatDuration(currentDuration),
+                                    label: "Current Duration",
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF4CAF50),
+                                        Color(0xFF2E7D32)
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Jobs Button - Moved outside of ScrollView to make it fixed
+                          _buildActionButton("View Job Assignments",
+                              onPressed: () {
+                            Navigator.of(context)
+                                .push(
+                              MaterialPageRoute(
+                                builder: (_) => const JobAssignedPage(),
+                              ),
+                            )
+                                .then((_) {
+                              // Optional: refresh data when returning from job assignments page
+                              if (mounted) {
+                                setState(() {
+                                  // Reset any state if needed after returning
+                                });
+                              }
+                            });
+                          }),
+                          SizedBox(height: 20.h),
+
+                          // Content scrollable area
+                          Expanded(
+                            child: SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Vehicle Info
+                                  _buildVehicleInfoCard(),
+                                  // Add some bottom padding for scrolling
+                                  SizedBox(height: 16.h),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
 
-            // Content area - only shown if not in fullscreen mode
-            if (!_isMapFullScreen)
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Column(
+                // Steering Wheel - only shown if not in fullscreen mode
+                if (!_isMapFullScreen)
+                  Container(
+                    height: 100.h, // Increased from 80.h
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      width: 80.w, // Increased from 60.w
+                      height: 80.w, // Increased from 60.w
+                      child: IconButton(
+                        icon: Image.asset(
+                          'assets/icons/steering.png',
+                          width: 70.w, // Increased from 50.w
+                          height: 70.w, // Increased from 50.w
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => PanicButtonPage()),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // Keep only the static notification indicator circle
+          if (_hasUnreadNotifications && !_isMapFullScreen)
+            Positioned(
+              left: 15.w,
+              top: MediaQuery.of(context).size.height * 0.35,
+              child: GestureDetector(
+                onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                child: Container(
+                  width: 50.w,
+                  height: 50.w,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6D6BF8), Color(0xFF5856D6)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(25.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF6D6BF8).withOpacity(0.4),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      // Timeline header
-                      Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                        child: Text(
-                          "Today's Timeline",
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 20.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      const Icon(
+                        Icons.notifications,
+                        color: Colors.white,
+                        size: 24,
                       ),
-
-                      // Stats Row - Enhanced design
-                      Container(
-                        width: double.infinity,
-                        margin: EdgeInsets.only(bottom: 20.h),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Expanded(
-                              child: _buildStatItem(
-                                icon: Icons.speed_rounded,
-                                value: "${totalMileage.toStringAsFixed(1)} KM",
-                                label: "Current Mileage",
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF6D6BF8),
-                                    Color(0xFF5856D6)
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
+                      if (_unreadNotificationCount > 0)
+                        Positioned(
+                          right: 10.w,
+                          top: 10.h,
+                          child: Container(
+                            padding: EdgeInsets.all(4.r),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
                             ),
-                            SizedBox(width: 12.w), // Space between the stats
-                            Expanded(
-                              child: _buildStatItem(
-                                icon: Icons.timer_outlined,
-                                value: formatDuration(currentDuration),
-                                label: "Current Duration",
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF4CAF50),
-                                    Color(0xFF2E7D32)
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
+                            constraints: BoxConstraints(
+                              minWidth: 16.w,
+                              minHeight: 16.w,
                             ),
-                          ],
-                        ),
-                      ),
-
-                      // Jobs Button - Moved outside of ScrollView to make it fixed
-                      _buildActionButton("View Job Assignments", onPressed: () {
-                        Navigator.of(context)
-                            .push(
-                          MaterialPageRoute(
-                            builder: (_) => const JobAssignedPage(),
-                          ),
-                        )
-                            .then((_) {
-                          // Optional: refresh data when returning from job assignments page
-                          if (mounted) {
-                            setState(() {
-                              // Reset any state if needed after returning
-                            });
-                          }
-                        });
-                      }),
-                      SizedBox(height: 20.h),
-
-                      // Content scrollable area
-                      Expanded(
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Vehicle Info
-                              _buildVehicleInfoCard(),
-                              // Add some bottom padding for scrolling
-                              SizedBox(height: 16.h),
-                            ],
+                            child: Text(
+                              _unreadNotificationCount > 9
+                                  ? '9+'
+                                  : '$_unreadNotificationCount',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
               ),
-
-            // Steering Wheel - only shown if not in fullscreen mode
-            if (!_isMapFullScreen)
-              Container(
-                height: 100.h, // Increased from 80.h
-                alignment: Alignment.center,
-                child: SizedBox(
-                  width: 80.w, // Increased from 60.w
-                  height: 80.w, // Increased from 60.w
-                  child: IconButton(
-                    icon: Image.asset(
-                      'assets/icons/steering.png',
-                      width: 70.w, // Increased from 50.w
-                      height: 70.w, // Increased from 50.w
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => PanicButtonPage()),
-                      );
-                    },
-                  ),
-                ),
-              ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

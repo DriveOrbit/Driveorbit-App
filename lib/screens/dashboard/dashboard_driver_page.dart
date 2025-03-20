@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driveorbit_app/models/notification_model.dart';
 import 'package:driveorbit_app/models/vehicle_details_entity.dart';
 import 'package:driveorbit_app/screens/dashboard/driver_history_page.dart';
 import 'package:driveorbit_app/screens/qr_scan/qr_scan_page.dart';
+import 'package:driveorbit_app/services/notification_service.dart';
+import 'package:driveorbit_app/widgets/notification_drawer.dart';
 import 'package:driveorbit_app/widgets/vehicle_details.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +24,7 @@ class DashboardDriverPage extends StatefulWidget {
 }
 
 class _DashboardDriverPageState extends State<DashboardDriverPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   List<VehicleDetailsEntity> _messages = [];
   List<VehicleDetailsEntity> _filteredMessages = [];
   String _searchQuery = '';
@@ -36,15 +39,27 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
   Animation<double>? _expandAnimation;
 
   // User data
-  String _firstName = '';
+  String _firstName = ''; // Add this line to define the variable
   String _profilePictureUrl = '';
   bool _isLoading = true;
+
+  // Notification related variables
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  List<NotificationModel> _notifications = [];
+  bool _hasUnreadNotifications = false;
+  final NotificationService _notificationService = NotificationService();
+
+  // Add animation controllers for notification hint
+  AnimationController? _notificationHintController;
+  Animation<Offset>? _notificationHintAnimation;
+  bool _hasShownNotificationTutorial = false;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
     _loadVehicleDetails();
+    _loadNotifications();
     // Set default status to All instead of Available
     _selectedStatusFilter = 'All';
 
@@ -58,6 +73,97 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
       parent: _animationController!,
       curve: Curves.easeInOut,
     );
+
+    // Initialize notification hint animation controller
+    _notificationHintController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _notificationHintAnimation = Tween<Offset>(
+      begin: const Offset(-0.2, 0.0),
+      end: const Offset(0.2, 0.0),
+    ).animate(CurvedAnimation(
+      parent: _notificationHintController!,
+      curve: Curves.easeInOut,
+    ));
+
+    // Check if we've shown the tutorial before
+    _checkNotificationTutorial();
+  }
+
+  Future<void> _checkNotificationTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    _hasShownNotificationTutorial =
+        prefs.getBool('has_shown_notification_tutorial') ?? false;
+
+    // Show tutorial if it's first time
+    if (!_hasShownNotificationTutorial) {
+      // Wait for the UI to build first
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showNotificationTutorial();
+      });
+    }
+  }
+
+  void _showNotificationTutorial() {
+    // Start animating the notification hint
+    _notificationHintController!.repeat(reverse: true);
+
+    // Show tutorial overlay
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.swipe_right, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Swipe right from the left edge to view notifications',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 5),
+          backgroundColor: const Color(0xFF6D6BF8),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+          action: SnackBarAction(
+            label: 'GOT IT',
+            textColor: Colors.white,
+            onPressed: () async {
+              // Stop the hint animation
+              _notificationHintController?.stop();
+
+              // Mark as shown
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('has_shown_notification_tutorial', true);
+              _hasShownNotificationTutorial = true;
+
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+        ),
+      );
+    });
+
+    // After 15 seconds, automatically dismiss the tutorial
+    Future.delayed(const Duration(seconds: 15), () async {
+      if (mounted && _notificationHintController?.isAnimating == true) {
+        _notificationHintController?.stop();
+
+        // Mark as shown
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('has_shown_notification_tutorial', true);
+        _hasShownNotificationTutorial = true;
+      }
+    });
   }
 
   @override
@@ -65,6 +171,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
     _searchDebounceTimer?.cancel();
     _scrollController.dispose();
     _animationController?.dispose();
+    _notificationHintController?.dispose();
     super.dispose();
   }
 
@@ -116,7 +223,6 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
 
       if (freshFirstName.isNotEmpty && mounted) {
         setState(() {
-          _firstName = freshFirstName;
           if (freshProfilePic.isNotEmpty) {
             _profilePictureUrl = freshProfilePic;
           }
@@ -138,6 +244,33 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _loadNotifications() async {
+    _notifications = await _notificationService.loadSampleNotifications();
+    if (mounted) {
+      setState(() {
+        _hasUnreadNotifications = _notificationService.hasUnreadNotifications();
+      });
+    }
+  }
+
+  void _markAsRead(String id) {
+    _notificationService.markAsRead(id);
+    if (mounted) {
+      setState(() {
+        _hasUnreadNotifications = _notificationService.hasUnreadNotifications();
+      });
+    }
+  }
+
+  void _markAllAsRead() {
+    _notificationService.markAllAsRead();
+    if (mounted) {
+      setState(() {
+        _hasUnreadNotifications = false;
+      });
     }
   }
 
@@ -246,6 +379,11 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
         return matchesSearch && matchesType && matchesStatus;
       }).toList();
     });
+  }
+
+  // Get count of unread notifications
+  int get _unreadNotificationCount {
+    return _notifications.where((notification) => !notification.isRead).length;
   }
 
   // UI Components
@@ -666,10 +804,23 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.black,
+      // Enable drawer edge gesture detection by default
+      drawerEnableOpenDragGesture: true,
+      drawer: NotificationDrawer(
+        notifications: _notifications,
+        onMarkAsRead: _markAsRead,
+        onMarkAllAsRead: _markAllAsRead,
+        hasUnreadNotifications: _hasUnreadNotifications,
+      ),
+      // Make drawer easy to open
+      drawerEdgeDragWidth: 60, // Wider area to detect swipes
+
+      // Restore missing AppBar
       appBar: AppBar(
         backgroundColor: Colors.black,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: false, // Hide default drawer icon
         title: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -700,22 +851,45 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
             _isLoading
                 ? const CircularProgressIndicator(
                     color: Colors.white, strokeWidth: 2)
-                : CircleAvatar(
-                    backgroundImage: _profilePictureUrl.isNotEmpty
-                        ? NetworkImage(_profilePictureUrl) as ImageProvider
-                        : const AssetImage('assets/default_avatar.jpg'),
-                    onBackgroundImageError: (_, __) {
-                      setState(() {
-                        _profilePictureUrl =
-                            'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
-                      });
-                    },
+                : Stack(
+                    children: [
+                      CircleAvatar(
+                        backgroundImage: _profilePictureUrl.isNotEmpty
+                            ? NetworkImage(_profilePictureUrl) as ImageProvider
+                            : const AssetImage('assets/default_avatar.jpg'),
+                        onBackgroundImageError: (_, __) {
+                          setState(() {
+                            _profilePictureUrl =
+                                'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
+                          });
+                        },
+                      ),
+                      // Notification indicator on avatar
+                      if (_hasUnreadNotifications)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.black,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
           ],
         ),
       ),
       body: Stack(
         children: [
+          // Main content
           Column(
             children: [
               // Main Scrollable Content
@@ -871,6 +1045,72 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
                   ),
                 );
               },
+            ),
+
+          // Keep only the notification circle
+          if (_hasUnreadNotifications)
+            Positioned(
+              left: 15.w,
+              top: MediaQuery.of(context).size.height * 0.35,
+              child: GestureDetector(
+                onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                child: Container(
+                  width: 50.w,
+                  height: 50.w,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6D6BF8), Color(0xFF5856D6)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(25.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF6D6BF8).withOpacity(0.4),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Icon(
+                        Icons.notifications,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      if (_unreadNotificationCount > 0)
+                        Positioned(
+                          right: 10.w,
+                          top: 10.h,
+                          child: Container(
+                            padding: EdgeInsets.all(4.r),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: BoxConstraints(
+                              minWidth: 16.w,
+                              minHeight: 16.w,
+                            ),
+                            child: Text(
+                              _unreadNotificationCount > 9
+                                  ? '9+'
+                                  : '$_unreadNotificationCount',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
             ),
         ],
       ),
