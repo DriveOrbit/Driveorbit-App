@@ -98,7 +98,7 @@ class _MileageFormState extends State<MileageForm>
               ),
 
               // Mileage Display
-              Container(
+              SizedBox(
                 height: 120, // Fixed height
                 child: Center(
                   child: Column(
@@ -145,7 +145,7 @@ class _MileageFormState extends State<MileageForm>
               const SizedBox(height: 50), // Add spacing
 
               // Camera Button - fixed height container
-              Container(
+              SizedBox(
                 height: 80, // Fixed height
                 child: GestureDetector(
                   onTap: () {/* Add camera logic */},
@@ -217,7 +217,7 @@ class _MileageFormState extends State<MileageForm>
               ),
 
               // Fuel Status Selection - increased fixed height
-              Container(
+              SizedBox(
                 height: 80, // Increased height from 60 to 80
                 child: AnimatedBuilder(
                   animation: _animationController,

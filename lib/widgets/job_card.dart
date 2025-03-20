@@ -10,10 +10,10 @@ class JobCard extends StatelessWidget {
   final VoidCallback? onCompletePressed;
 
   const JobCard({
-    Key? key,
+    super.key,
     required this.history,
     this.onCompletePressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -293,9 +293,9 @@ class JobCard extends StatelessWidget {
 
                   SizedBox(height: 16.h),
 
-                  // Trip stats in a more organized layout
+                  // Trip stats in a more organized layout - modified to remove fare
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _buildTripStatNew(
                         icon: Icons.access_time,
@@ -307,11 +307,7 @@ class JobCard extends StatelessWidget {
                         label: "${history.duration} min",
                         color: Colors.purple,
                       ),
-                      _buildTripStatNew(
-                        icon: Icons.attach_money,
-                        label: "Rs ${history.estimatedFare.toInt()}",
-                        color: Colors.green,
-                      ),
+                      // Removed money/fare stat
                     ],
                   ),
 
@@ -603,160 +599,189 @@ class JobCard extends StatelessWidget {
   void showJobDetailsDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         backgroundColor: Colors.grey[900],
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
         ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.assignment,
-              color: const Color(0xFF6D6BF8),
-              size: 24.sp,
-            ),
-            SizedBox(width: 10.w),
-            Text(
-              "Job Details",
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18.sp,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status indicator
-            Container(
-              margin: EdgeInsets.only(bottom: 16.h),
-              padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 12.w),
-              decoration: BoxDecoration(
-                color: history.getStatusColor().withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(
-                  color: history.getStatusColor().withOpacity(0.5),
-                ),
-              ),
-              child: Row(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.9,
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.assignment,
+                        color: const Color(0xFF6D6BF8),
+                        size: 24.sp,
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text(
+                          "Job Details",
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18.sp,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon:
+                            Icon(Icons.close, color: Colors.white, size: 20.sp),
+                        onPressed: () => Navigator.pop(context),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Status indicator
                   Container(
-                    width: 8.w,
-                    height: 8.w,
+                    margin: EdgeInsets.only(bottom: 16.h),
+                    padding:
+                        EdgeInsets.symmetric(vertical: 6.h, horizontal: 12.w),
                     decoration: BoxDecoration(
-                      color: history.getStatusColor(),
-                      shape: BoxShape.circle,
+                      color: history.getStatusColor().withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(
+                        color: history.getStatusColor().withOpacity(0.5),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8.w,
+                          height: 8.w,
+                          decoration: BoxDecoration(
+                            color: history.getStatusColor(),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                        Text(
+                          history.status.toUpperCase(),
+                          style: GoogleFonts.poppins(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
+                            color: history.getStatusColor(),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(width: 6.w),
-                  Text(
-                    history.status.toUpperCase(),
-                    style: GoogleFonts.poppins(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color: history.getStatusColor(),
+
+                  // Details
+                  _buildDetailRow("ID:", "#${history.historyId}"),
+                  _buildDetailRow(
+                      "Date:", DateFormat('MMM dd, yyyy').format(history.date)),
+                  _buildDetailRow("Time:",
+                      DateFormat('hh:mm a').format(history.arrivedTime)),
+                  _buildDetailRow("Customer:", history.customerName),
+                  _buildDetailRow("Contact:", history.customerContact),
+                  _buildDetailRow("Vehicle Type:", history.vehicleType),
+                  _buildDetailRow("From:", history.startLocation),
+                  _buildDetailRow("To:", history.endLocation),
+                  _buildDetailRow(
+                      "Distance:", "${history.distance.toStringAsFixed(1)} km"),
+                  _buildDetailRow("Duration:", "${history.duration} minutes"),
+                  // Removed Estimated Fare detail row
+
+                  // Notes section
+                  if (history.notes.isNotEmpty) ...[
+                    SizedBox(height: 16.h),
+                    Text(
+                      "Notes:",
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        fontSize: 15.sp,
+                      ),
                     ),
+                    SizedBox(height: 6.h),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(12.w),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[850],
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Text(
+                        history.notes,
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // Actions
+                  SizedBox(height: 16.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (!history.isCompleted)
+                        Flexible(
+                          child: SizedBox(
+                            // Fix: Provide a fixed width or use Flexible with fit: FlexFit.loose
+                            width: 140.w,
+                            child: ElevatedButton.icon(
+                              icon: Icon(
+                                Icons.check_circle_outline,
+                                size: 18.sp,
+                              ),
+                              label: Text(
+                                "Complete",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14.sp,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                if (onCompletePressed != null) {
+                                  onCompletePressed!();
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      SizedBox(width: 8.w),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          "Close",
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF6D6BF8),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-
-            // Details
-            _buildDetailRow("ID:", "#${history.historyId}"),
-            _buildDetailRow(
-                "Date:", DateFormat('MMM dd, yyyy').format(history.date)),
-            _buildDetailRow(
-                "Time:", DateFormat('hh:mm a').format(history.arrivedTime)),
-            _buildDetailRow("Customer:", history.customerName),
-            _buildDetailRow("Contact:", history.customerContact),
-            _buildDetailRow("Vehicle Type:", history.vehicleType),
-            _buildDetailRow("From:", history.startLocation),
-            _buildDetailRow("To:", history.endLocation),
-            _buildDetailRow(
-                "Distance:", "${history.distance.toStringAsFixed(1)} km"),
-            _buildDetailRow("Duration:", "${history.duration} minutes"),
-            _buildDetailRow(
-                "Est. Fare:", "Rs ${history.estimatedFare.toInt()}"),
-
-            // Notes section
-            if (history.notes.isNotEmpty) ...[
-              SizedBox(height: 16.h),
-              Text(
-                "Notes:",
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  fontSize: 15.sp,
-                ),
-              ),
-              SizedBox(height: 6.h),
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: Colors.grey[850],
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Text(
-                  history.notes,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 14.sp,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          if (!history.isCompleted)
-            ElevatedButton.icon(
-              icon: Icon(
-                Icons.check_circle_outline,
-                size: 18.sp,
-              ),
-              label: Text(
-                "Complete Job",
-                style: GoogleFonts.poppins(
-                  fontSize: 14.sp,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-                if (onCompletePressed != null) {
-                  onCompletePressed!();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Job marked as completed!"),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-            ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              "Close",
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF6D6BF8),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
           ),
-        ],
+        ),
       ),
     );
   }

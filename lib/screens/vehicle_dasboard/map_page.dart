@@ -735,8 +735,8 @@ class _MapPageState extends State<MapPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(
-                      color: const Color(0xFF6D6BF8),
+                    const CircularProgressIndicator(
+                      color: Color(0xFF6D6BF8),
                     ),
                     SizedBox(height: 12.h),
                     Text(
@@ -812,9 +812,9 @@ class _MapPageState extends State<MapPage> {
           if (_isMapLoading)
             Container(
               color: Colors.black.withOpacity(0.6),
-              child: Center(
+              child: const Center(
                 child: CircularProgressIndicator(
-                  color: const Color(0xFF6D6BF8),
+                  color: Color(0xFF6D6BF8),
                 ),
               ),
             ),
@@ -823,9 +823,9 @@ class _MapPageState extends State<MapPage> {
           if (_isTransitioning)
             Container(
               color: Colors.black.withOpacity(0.5),
-              child: Center(
+              child: const Center(
                 child: CircularProgressIndicator(
-                  color: const Color(0xFF6D6BF8),
+                  color: Color(0xFF6D6BF8),
                 ),
               ),
             ),

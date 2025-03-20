@@ -1,7 +1,4 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 class JobDetailsEntity {
   final String historyId;

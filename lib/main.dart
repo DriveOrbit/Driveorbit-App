@@ -102,7 +102,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
-      designSize: const Size(449, 973),
+      designSize:
+          const Size(449, 973), // Design size based on your design files
+      minTextAdapt: true,
+      splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
           title: 'DriveOrbit',
@@ -128,6 +131,7 @@ class MyApp extends StatelessWidget {
           },
         );
       },
+      child: const SplashScreen(), // Your initial screen
     );
   }
 }
