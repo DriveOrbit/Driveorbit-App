@@ -1,4 +1,3 @@
-import 'package:driveorbit_app/screens/vehicle_dasboard/map_page.dart';
 import 'package:driveorbit_app/screens/dashboard/dashboard_driver_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -123,7 +122,7 @@ class MyApp extends StatelessWidget {
           builder: (context, child) {
             return MediaQuery(
               data: MediaQuery.of(context)
-                  .copyWith(textScaler: TextScaler.linear(1.0)),
+                  .copyWith(textScaler: const TextScaler.linear(1.0)),
               child: child ?? Container(),
             );
           },

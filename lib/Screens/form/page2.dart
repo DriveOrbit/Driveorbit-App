@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:driveorbit_app/screens/vehicle_dasboard/map_page.dart'; // Import map page
 
 class MileageForm extends StatefulWidget {
-  const MileageForm({Key? key}) : super(key: key);
+  const MileageForm({super.key});
 
   @override
   _MileageFormState createState() => _MileageFormState();
@@ -202,7 +203,7 @@ class _MileageFormState extends State<MileageForm>
               const SizedBox(height: 20),
 
               // Fuel Status Selection
-              Container(
+              SizedBox(
                 height: 80, // Fixed height for fuel status area
                 child: AnimatedBuilder(
                   animation: _animationController,
@@ -220,14 +221,19 @@ class _MileageFormState extends State<MileageForm>
               // Next Button
               Align(
                 alignment: Alignment.center,
-                child: Container(
+                child: SizedBox(
                   width: 80,
                   height: 80,
                   child: IconButton(
                     onPressed: isFormValid
                         ? () {
-                            print('Mileage: ${mileageController.text}');
-                            print('Full tank: $isFullTank');
+                            // Navigate to Map page when form is complete
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MapPage(),
+                              ),
+                            );
                           }
                         : null,
                     icon: Image.asset(

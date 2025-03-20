@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -250,8 +250,8 @@ class _SplashScreenState extends State<SplashScreen>
                             // Rotating outer circle
                             Transform.rotate(
                               angle: _animationController.value * 2 * math.pi,
-                              child: CircularProgressIndicator(
-                                color: const Color(0xFF6D6BF8),
+                              child: const CircularProgressIndicator(
+                                color: Color(0xFF6D6BF8),
                                 strokeWidth: 4,
                                 value: null,
                               ),
@@ -337,7 +337,7 @@ class WavePainter extends CustomPainter {
 
       // Wave parameters
       final waveHeight = size.height * 0.3;
-      final waveCount = 3.0; // Number of complete waves
+      const waveCount = 3.0; // Number of complete waves
       final phaseShift =
           animationValue * 2 * math.pi + (i * math.pi / waveColors.length);
 

@@ -6,7 +6,7 @@ void main() {
   group('MileageForm Widget Tests', () {
     testWidgets('Mileage TextField should accept input',
         (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(home: MileageForm()));
+      await tester.pumpWidget(const MaterialApp(home: MileageForm()));
 
       // Enter text in the TextField
       await tester.enterText(find.byType(TextField), '12345');
@@ -18,7 +18,7 @@ void main() {
 
     testWidgets('Camera button should be tappable',
         (WidgetTester tester) async {
-      await tester.pumpWidget(MaterialApp(home: MileageForm()));
+      await tester.pumpWidget(const MaterialApp(home: MileageForm()));
 
       // Verify camera button is present
       expect(find.text('Take a photo of dashboard'), findsOneWidget);

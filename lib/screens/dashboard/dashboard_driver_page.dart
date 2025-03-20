@@ -602,7 +602,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
                                       ),
                                     ),
                                     child: isSelected
-                                        ? Icon(Icons.check,
+                                        ? const Icon(Icons.check,
                                             color: Colors.white, size: 18)
                                         : null,
                                   ),
@@ -629,8 +629,8 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
                       },
                     ),
                     const Divider(color: Colors.white24, height: 1),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
+                    const Padding(
+                      padding: EdgeInsets.all(12.0),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -639,7 +639,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
                             color: Colors.white70,
                             size: 20,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Text(
                             "Swipe to select",
                             style: TextStyle(

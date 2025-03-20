@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:driveorbit_app/screens/dashboard/dashboard_driver_page.dart';
+import 'package:driveorbit_app/Screens/form/page1.dart'; // Import page1
 
 class ScanCodePage extends StatefulWidget {
   const ScanCodePage({super.key});
@@ -30,16 +31,12 @@ class _ScanCodePageState extends State<ScanCodePage> {
                 print('Barcode found! ${barcode.rawValue}');
               }
               if (image != null) {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: Text(barcodes.first.rawValue ?? ""),
-                      content: Image(
-                        image: MemoryImage(image),
-                      ),
-                    );
-                  },
+                // Navigate to form page1 after QR scan detection
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PhotoUploadPage(),
+                  ),
                 );
               }
             },

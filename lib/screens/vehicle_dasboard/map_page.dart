@@ -4,19 +4,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:async';
-
-// Define a dummy JobPage
-class JobPage extends StatelessWidget {
-  const JobPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Job Details")),
-      body: const Center(child: Text("Job Details Placeholder")),
-    );
-  }
-}
+import 'package:driveorbit_app/screens/job/job_assign.dart'; // Import the real job page
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -35,6 +26,10 @@ class _MapPageState extends State<MapPage> {
   double totalMileage = 0.0;
   Position? previousPosition;
 
+  String _firstName = '';
+  String _profilePictureUrl = '';
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +38,59 @@ class _MapPageState extends State<MapPage> {
       setState(() {});
     });
     _getCurrentLocation();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    if (!mounted) return;
+    try {
+      setState(() => _isLoading = true);
+
+      final prefs = await SharedPreferences.getInstance();
+
+      final cachedFirstName = prefs.getString('user_firstName') ?? '';
+      final cachedProfilePic = prefs.getString('user_profilePicture') ?? '';
+
+      if (cachedFirstName.isNotEmpty && mounted) {
+        setState(() {
+          _firstName = cachedFirstName;
+          _profilePictureUrl = cachedProfilePic;
+        });
+      }
+
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('drivers')
+          .doc(currentUser.uid)
+          .get();
+
+      if (!userDoc.exists || userDoc.data() == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+
+      final userData = userDoc.data()!;
+      final freshFirstName = userData['firstName']?.toString() ?? '';
+      final freshProfilePic = userData['profilePicture']?.toString() ?? '';
+
+      if (freshFirstName.isNotEmpty && mounted) {
+        setState(() {
+          _firstName = freshFirstName;
+          if (freshProfilePic.isNotEmpty) {
+            _profilePictureUrl = freshProfilePic;
+          }
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _getCurrentLocation() async {
@@ -139,6 +187,7 @@ class _MapPageState extends State<MapPage> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
+        automaticallyImplyLeading: false,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -153,22 +202,40 @@ class _MapPageState extends State<MapPage> {
                         fontSize: 22.sp,
                       ),
                     ),
-                    const TextSpan(
-                      text: 'Chandeera!',
+                    TextSpan(
+                      text: _firstName.isNotEmpty ? '$_firstName!' : 'Driver!',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 20,
+                        fontSize: 20.sp,
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(width: 9),
-            const CircleAvatar(
-              backgroundImage: AssetImage('assets/chandeera.jpg'),
-            ),
+            SizedBox(width: 9.w),
+            _isLoading
+                ? SizedBox(
+                    width: 40.w,
+                    height: 40.h,
+                    child: const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : CircleAvatar(
+                    radius: 20.r,
+                    backgroundImage: _profilePictureUrl.isNotEmpty
+                        ? NetworkImage(_profilePictureUrl) as ImageProvider
+                        : const AssetImage('assets/default_avatar.jpg'),
+                    onBackgroundImageError: (_, __) {
+                      setState(() {
+                        _profilePictureUrl =
+                            'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
+                      });
+                    },
+                  ),
           ],
         ),
       ),
@@ -180,21 +247,20 @@ class _MapPageState extends State<MapPage> {
               top: 0,
               left: 0,
               right: 0,
-              height: MediaQuery.of(context).size.height * 0.325,
+              height: MediaQuery.of(context).size.height * 0.35,
               child: _buildMapView(),
             ),
 
             // Content area
             Positioned(
-              top: 220.h, // Adjusted top position
+              top: 240.h,
               left: 0,
               right: 0,
-              bottom: 20.h, // Space for steering wheel
+              bottom: 80.h,
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
                 child: SingleChildScrollView(
-                  // Add scroll capability
-
+                  physics: const BouncingScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -204,21 +270,21 @@ class _MapPageState extends State<MapPage> {
                           "Today's Timeline",
                           style: GoogleFonts.poppins(
                             color: Colors.white,
-                            fontSize: 16.sp,
+                            fontSize: 18.sp,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                      SizedBox(height: 8.h), // Reduced spacing
+                      SizedBox(height: 16.h),
 
                       // Stats Row
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _buildStatItem(
                             value: "${totalMileage.toStringAsFixed(1)} KM",
                             label: "Current Mileage",
                           ),
-                          Spacer(),
                           _buildStatItem(
                             icon: null,
                             value: formatDuration(currentDuration),
@@ -226,14 +292,17 @@ class _MapPageState extends State<MapPage> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 12.h),
+                      SizedBox(height: 20.h),
 
                       // Jobs Button
                       _buildActionButton("Jobs", onPressed: () {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => JobPage()));
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const JobAssignedPage(),
+                          ),
+                        );
                       }),
-                      SizedBox(height: 12.h),
+                      SizedBox(height: 20.h),
 
                       // Vehicle Info
                       _buildVehicleInfoCard(),
@@ -251,7 +320,7 @@ class _MapPageState extends State<MapPage> {
             Positioned(
               bottom: 20,
               left: (MediaQuery.of(context).size.width - 60.w) / 2,
-              child: Container(
+              child: SizedBox(
                 width: 60.w,
                 height: 60.w,
                 child: IconButton(
@@ -357,7 +426,7 @@ class _MapPageState extends State<MapPage> {
               ),
             ],
           ),
-          Spacer(),
+          const Spacer(),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
             decoration: BoxDecoration(

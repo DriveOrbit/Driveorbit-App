@@ -106,7 +106,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
                     // Navigate to the second page (MileageForm)
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => MileageForm()),
+                      MaterialPageRoute(builder: (context) => const MileageForm()),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -116,7 +116,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  child: Text("Next", style: TextStyle(fontSize: 18)),
+                  child: const Text("Next", style: TextStyle(fontSize: 18)),
                 ),
               ),
             ],
