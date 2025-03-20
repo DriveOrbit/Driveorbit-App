@@ -12,6 +12,7 @@ import 'package:driveorbit_app/screens/job/job_assign.dart'; // Import the real 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:driveorbit_app/widgets/draggable_notification_circle.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -99,9 +100,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
           content: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.swipe_right, color: Colors.white),
-              SizedBox(width: 8),
-              Expanded(
+              const Icon(Icons.swipe_right, color: Colors.white),
+              const SizedBox(width: 8),
+              const Expanded(
                 child: Text(
                   'Swipe right from the left edge to view notifications',
                   style: TextStyle(color: Colors.white),
@@ -394,10 +395,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       key: _scaffoldKey,
       backgroundColor: Colors.black,
       // Special handling for map page - conditionally enable edge swipe
-      drawerEnableOpenDragGesture:
-          !_isMapFullScreen, // Only enable when not in fullscreen
-      drawerEdgeDragWidth:
-          60, // Wider area to detect swipes when not in fullscreen
+      drawerEnableOpenDragGesture: !_isMapFullScreen,
+      drawerEdgeDragWidth: MediaQuery.of(context).size.width * 0.5,
       drawer: NotificationDrawer(
         notifications: _notifications,
         onMarkAsRead: _markAsRead,
@@ -637,70 +636,12 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             ),
           ),
 
-          // Keep only the static notification indicator circle
+          // Replace the old notification circle with the new animated one
           if (_hasUnreadNotifications && !_isMapFullScreen)
-            Positioned(
-              left: 15.w,
-              top: MediaQuery.of(context).size.height * 0.35,
-              child: GestureDetector(
-                onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                child: Container(
-                  width: 50.w,
-                  height: 50.w,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6D6BF8), Color(0xFF5856D6)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(25.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF6D6BF8).withOpacity(0.4),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const Icon(
-                        Icons.notifications,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                      if (_unreadNotificationCount > 0)
-                        Positioned(
-                          right: 10.w,
-                          top: 10.h,
-                          child: Container(
-                            padding: EdgeInsets.all(4.r),
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: BoxConstraints(
-                              minWidth: 16.w,
-                              minHeight: 16.w,
-                            ),
-                            child: Text(
-                              _unreadNotificationCount > 9
-                                  ? '9+'
-                                  : '$_unreadNotificationCount',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
+            DraggableNotificationCircle(
+              notificationCount: _unreadNotificationCount,
+              onDragComplete: () => _scaffoldKey.currentState?.openDrawer(),
+              showIndicator: true,
             ),
         ],
       ),

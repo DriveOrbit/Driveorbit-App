@@ -26,71 +26,72 @@ class _DraggableNotificationCircleState
   bool _isDragging = false;
   final double _maxDragDistance = 100.0;
 
-  AnimationController? _pulseController;
-  Animation<double>? _pulseAnimation;
+  // Animation controllers
+  late AnimationController _animationController;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _rotateAnimation;
+  late Animation<Color?> _colorAnimation;
+  late Animation<double> _bounceAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    // Initialize pulse animation if we have notifications
-    if (widget.notificationCount > 0) {
-      _pulseController = AnimationController(
-        duration: const Duration(milliseconds: 1500),
-        vsync: this,
-      );
+    // Initialize animation controller with a longer duration for smoother animations
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    );
 
-      _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
-        CurvedAnimation(
-          parent: _pulseController!,
-          curve: Curves.easeInOut,
-        ),
-      );
+    // Pulse animation (grow and shrink) - fixed to ensure values stay within [0.0, 1.0]
+    _pulseAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.08), weight: 1),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 1.08, end: 0.96), weight: 1),
+      TweenSequenceItem(tween: Tween<double>(begin: 0.96, end: 1.0), weight: 1),
+    ]).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.7, curve: Curves.easeInOut),
+    ));
 
-      // Repeat the animation
-      _pulseController!.repeat(reverse: true);
-    }
+    // Subtle rotation animation - keep within smaller angle range
+    _rotateAnimation = Tween<double>(begin: -0.03, end: 0.03).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+
+    // Color animation for the glow effect
+    _colorAnimation = ColorTween(
+      begin: const Color(0xFF6D6BF8).withOpacity(0.4),
+      end: const Color(0xFF5856D6).withOpacity(0.7),
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Fixed bounce animation to prevent range errors
+    _bounceAnimation = Tween<double>(
+      begin: 0.0,
+      end: -3.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Start the animation and repeat it
+    _animationController.repeat(reverse: true);
   }
 
   @override
   void dispose() {
-    _pulseController?.dispose();
+    _animationController.dispose();
     super.dispose();
-  }
-
-  @override
-  void didUpdateWidget(DraggableNotificationCircle oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    // Handle changes in notification count or visibility
-    if (oldWidget.notificationCount != widget.notificationCount ||
-        oldWidget.showIndicator != widget.showIndicator) {
-      // Clean up controller if we have no notifications or indicator shouldn't be shown
-      if ((widget.notificationCount == 0 || !widget.showIndicator) &&
-          _pulseController != null) {
-        _pulseController?.dispose();
-        _pulseController = null;
-        _pulseAnimation = null;
-      }
-      // Create controller if we now have notifications and should show them
-      else if (widget.notificationCount > 0 &&
-          widget.showIndicator &&
-          _pulseController == null) {
-        _pulseController = AnimationController(
-          duration: const Duration(milliseconds: 1500),
-          vsync: this,
-        );
-
-        _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
-          CurvedAnimation(
-            parent: _pulseController!,
-            curve: Curves.easeInOut,
-          ),
-        );
-
-        _pulseController!.repeat(reverse: true);
-      }
-    }
   }
 
   // This will be called when the circle is tapped directly
@@ -136,40 +137,44 @@ class _DraggableNotificationCircleState
               _dragY = 0;
             });
           },
-          child: Transform.translate(
-            offset: Offset(_dragX, _dragY),
-            child: _pulseController != null && _pulseAnimation != null
-                ? AnimatedBuilder(
-                    animation: _pulseController!,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _pulseAnimation!.value,
-                        child: _buildNotificationCircle(),
-                      );
-                    },
-                  )
-                : _buildNotificationCircle(),
+          child: AnimatedBuilder(
+            animation: _animationController,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(_dragX, _bounceAnimation.value + _dragY),
+                child: Transform.rotate(
+                  angle: _rotateAnimation.value,
+                  child: Transform.scale(
+                    scale: _pulseAnimation.value,
+                    child: _buildNotificationCircle(
+                      _colorAnimation.value ??
+                          const Color(0xFF6D6BF8).withOpacity(0.5),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNotificationCircle() {
+  Widget _buildNotificationCircle(Color shadowColor) {
     return Container(
-      width: 50.w,
-      height: 50.w,
+      width: 55.w,
+      height: 55.w,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF6D6BF8), Color(0xFF5856D6)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(25.r),
+        borderRadius: BorderRadius.circular(27.5.r),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6D6BF8).withOpacity(0.4),
-            blurRadius: 10,
+            color: shadowColor,
+            blurRadius: 15,
             spreadRadius: 2,
           ),
         ],
@@ -177,10 +182,10 @@ class _DraggableNotificationCircleState
       child: Stack(
         alignment: Alignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.notifications,
             color: Colors.white,
-            size: 24, // Explicit size for better visibility
+            size: 26.sp,
           ),
           if (widget.notificationCount > 0)
             Positioned(
@@ -188,9 +193,16 @@ class _DraggableNotificationCircleState
               top: 10.h,
               child: Container(
                 padding: EdgeInsets.all(4.r),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: Colors.red,
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 4,
+                      spreadRadius: 0.5,
+                    ),
+                  ],
                 ),
                 constraints: BoxConstraints(
                   minWidth: 16.w,
@@ -215,7 +227,7 @@ class _DraggableNotificationCircleState
               height: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(25.r),
+                borderRadius: BorderRadius.circular(27.5.r),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,

@@ -15,6 +15,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:driveorbit_app/widgets/draggable_notification_circle.dart';
 
 class DashboardDriverPage extends StatefulWidget {
   const DashboardDriverPage({super.key});
@@ -51,7 +52,6 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
 
   // Add animation controllers for notification hint
   AnimationController? _notificationHintController;
-  Animation<Offset>? _notificationHintAnimation;
   bool _hasShownNotificationTutorial = false;
 
   @override
@@ -79,14 +79,6 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-
-    _notificationHintAnimation = Tween<Offset>(
-      begin: const Offset(-0.2, 0.0),
-      end: const Offset(0.2, 0.0),
-    ).animate(CurvedAnimation(
-      parent: _notificationHintController!,
-      curve: Curves.easeInOut,
-    ));
 
     // Check if we've shown the tutorial before
     _checkNotificationTutorial();
@@ -717,8 +709,6 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children:
                                 List.generate(statusOptions.length, (index) {
-                              final status =
-                                  statusOptions[index]['status'] as String;
                               final color =
                                   statusOptions[index]['color'] as Color;
                               final isSelected = selectedIndex == index;
@@ -808,6 +798,9 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
       backgroundColor: Colors.black,
       // Enable drawer edge gesture detection by default
       drawerEnableOpenDragGesture: true,
+      // Increase the area for swipe detection - fix the duplicate property
+      drawerEdgeDragWidth: MediaQuery.of(context).size.width *
+          0.5, // 30% of screen width for easier access
       drawer: NotificationDrawer(
         notifications: _notifications,
         onMarkAsRead: _markAsRead,
@@ -815,7 +808,6 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
         hasUnreadNotifications: _hasUnreadNotifications,
       ),
       // Make drawer easy to open
-      drawerEdgeDragWidth: 60, // Wider area to detect swipes
 
       // Restore missing AppBar
       appBar: AppBar(
@@ -1047,70 +1039,12 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
               },
             ),
 
-          // Keep only the notification circle
+          // Replace the old notification circle with the new animated one
           if (_hasUnreadNotifications)
-            Positioned(
-              left: 15.w,
-              top: MediaQuery.of(context).size.height * 0.35,
-              child: GestureDetector(
-                onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                child: Container(
-                  width: 50.w,
-                  height: 50.w,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6D6BF8), Color(0xFF5856D6)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(25.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF6D6BF8).withOpacity(0.4),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const Icon(
-                        Icons.notifications,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                      if (_unreadNotificationCount > 0)
-                        Positioned(
-                          right: 10.w,
-                          top: 10.h,
-                          child: Container(
-                            padding: EdgeInsets.all(4.r),
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: BoxConstraints(
-                              minWidth: 16.w,
-                              minHeight: 16.w,
-                            ),
-                            child: Text(
-                              _unreadNotificationCount > 9
-                                  ? '9+'
-                                  : '$_unreadNotificationCount',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
+            DraggableNotificationCircle(
+              notificationCount: _unreadNotificationCount,
+              onDragComplete: () => _scaffoldKey.currentState?.openDrawer(),
+              showIndicator: true,
             ),
         ],
       ),
