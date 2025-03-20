@@ -12,9 +12,10 @@ import 'app/theme.dart';
 import 'screens/splash/splash_screen.dart';
 
 void main() async {
+  // Ensure Flutter is initialized before using platform channels
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Fix for potential OpenGL issues
+  // Set preferred orientations (optional)
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

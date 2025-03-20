@@ -798,6 +798,8 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
       backgroundColor: Colors.black,
       // Enable drawer edge gesture detection by default
       drawerEnableOpenDragGesture: true,
+      // Prevent the view from resizing when keyboard appears
+      resizeToAvoidBottomInset: false,
       // Increase the area for swipe detection - fix the duplicate property
       drawerEdgeDragWidth: MediaQuery.of(context).size.width *
           0.5, // 30% of screen width for easier access
@@ -899,40 +901,47 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
                       title: _buildSearchBar(),
                     ),
                     SliverToBoxAdapter(
-                      child: ShaderMask(
-                        shaderCallback: (Rect rect) {
-                          return LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: const <Color>[
-                              Colors.transparent,
-                              Colors.red,
-                              Colors.red,
-                              Colors.transparent,
-                            ],
-                            stops: [0.0, 0.01, (!_isExpanded) ? 0.7 : 0.9, 1.0],
-                          ).createShader(rect);
-                        },
-                        blendMode: BlendMode.dstIn,
-                        child: AnimatedSize(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemBuilder: (context, index) {
-                              return VehicleDetails(
-                                  entity: _filteredMessages[index]);
-                            },
-                            itemCount: _isExpanded
-                                ? _filteredMessages.length
-                                : _filteredMessages.length >
-                                        _initialVehicleCount
-                                    ? _initialVehicleCount
-                                    : _filteredMessages.length,
-                          ),
-                        ),
-                      ),
+                      child: _filteredMessages.isEmpty
+                          ? _buildNoVehiclesFoundWidget()
+                          : ShaderMask(
+                              shaderCallback: (Rect rect) {
+                                return LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: const <Color>[
+                                    Colors.transparent,
+                                    Colors.red,
+                                    Colors.red,
+                                    Colors.transparent,
+                                  ],
+                                  stops: [
+                                    0.0,
+                                    0.01,
+                                    (!_isExpanded) ? 0.7 : 0.9,
+                                    1.0
+                                  ],
+                                ).createShader(rect);
+                              },
+                              blendMode: BlendMode.dstIn,
+                              child: AnimatedSize(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemBuilder: (context, index) {
+                                    return VehicleDetails(
+                                        entity: _filteredMessages[index]);
+                                  },
+                                  itemCount: _isExpanded
+                                      ? _filteredMessages.length
+                                      : _filteredMessages.length >
+                                              _initialVehicleCount
+                                          ? _initialVehicleCount
+                                          : _filteredMessages.length,
+                                ),
+                              ),
+                            ),
                     ),
                   ],
                 ),
@@ -1046,6 +1055,55 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
               onDragComplete: () => _scaffoldKey.currentState?.openDrawer(),
               showIndicator: true,
             ),
+        ],
+      ),
+    );
+  }
+
+  // New method to show UI when no vehicles found
+  Widget _buildNoVehiclesFoundWidget() {
+    return Container(
+      height: 200.h,
+      margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white24, width: 1),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons
+                .directions_car, // Using a valid icon that's guaranteed to exist
+            size: 50,
+            color: Colors.grey[400],
+          ),
+          SizedBox(height: 20.h),
+          Text(
+            'No vehicles found',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 10.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Text(
+              _searchQuery.isNotEmpty ||
+                      _selectedTypeFilter != 'All' ||
+                      _selectedStatusFilter != 'All'
+                  ? 'Try adjusting your filters or search query'
+                  : 'There are no vehicles currently available',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 14.sp,
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -54,6 +54,8 @@ dependencies:
   url_launcher: ^6.1.10 # or the latest version
   flutter_swipe_button: ^2.1.3
   sliding_action_button: ^0.0.6
+  image_picker: ^1.0.4  # Use a more recent version
+  permission_handler: ^11.0.0  # Update to the latest version
 
 dev_dependencies:
   flutter_test:

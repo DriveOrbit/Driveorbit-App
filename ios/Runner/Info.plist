@@ -21,7 +21,7 @@
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>NSCameraUsageDescription</key>
-    <string>Driveorbit needs camera access to scan QR codes</string>
+    <string>This app needs camera access to take pictures of the vehicle</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Driveorbit needs photos access to get QR code from photo library</string>
 	<key>CFBundleVersion</key>
