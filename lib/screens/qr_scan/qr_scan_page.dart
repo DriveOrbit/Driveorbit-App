@@ -44,14 +44,17 @@ class _ScanCodePageState extends State<ScanCodePage> {
 
           // Close button positioned at the bottom center
           Positioned(
-            bottom: 40, // Adjust the distance from the bottom
+            bottom: 55,
             left: 0,
             right: 0,
             child: Center(
               child: IconButton(
-                icon: const Icon(
-                  Icons.close,
-                  size: 36,
+                iconSize: 66, // Maintain the same icon button size
+                padding: EdgeInsets.zero, // Maintain zero padding
+                icon: Image.asset(
+                  'assets/icons/Nav-close.png',
+                  width: 55,
+                  height: 60, // Maintain the same dimensions
                   color: Colors.white,
                 ),
                 onPressed: () {

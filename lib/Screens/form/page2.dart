@@ -65,146 +65,160 @@ class _MileageFormState extends State<MileageForm>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SingleChildScrollView(
+      body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 70.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              RichText(
-                text: const TextSpan(
-                  children: [
-                    TextSpan(
-                      text: "Enter your ",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF6D6BF8),
-                      ),
-                    ),
-                    TextSpan(
-                      text: "current\nmileage",
-                      style: TextStyle(
+              // Header - reduced flex and added explicit padding
+              Padding(
+                padding: const EdgeInsets.only(top: 20.0, bottom: 10.0),
+                child: RichText(
+                  text: const TextSpan(
+                    children: [
+                      TextSpan(
+                        text: "Enter your ",
+                        style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF54C1D5)),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // Mileage Display
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: mileageController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        hintText: "190 868",
-                        hintStyle: TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade600,
+                          color: Color(0xFF6D6BF8),
                         ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
                       ),
-                      onChanged: (value) => setState(() {}),
-                    ),
-                    const Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        "KM",
+                      TextSpan(
+                        text: "current\nmileage",
                         style: TextStyle(
-                          fontSize: 24,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 90),
-
-              // Camera Button
-              GestureDetector(
-                onTap: () {/* Add camera logic */},
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/icons/Camera.png',
-                        width: 60,
-                      ),
-                      const SizedBox(width: 15),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Take a photo of dashboard",
-                            style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black),
-                          ),
-                          Text(
-                            "Please take a clear photo",
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.grey.shade600),
-                          ),
-                        ],
+                            fontSize: 28,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF54C1D5)),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 80),
 
-              // Fuel Status Header
-              RichText(
-                text: const TextSpan(
-                  children: [
-                    TextSpan(
-                      text: "What is your ",
-                      style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF6D6BF8)),
-                    ),
-                    TextSpan(
-                      text: "current fuel\nstatus",
-                      style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF54C1D5)),
-                    ),
-                  ],
+              // Mileage Display
+              Container(
+                height: 120, // Fixed height
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: mileageController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          hintText: "190 868",
+                          hintStyle: TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade600,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onChanged: (value) => setState(() {}),
+                      ),
+                      const Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          "KM",
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
 
-              // Fuel Status Selection
-              SizedBox(
-                height: 80, // Fixed height for fuel status area
+              const SizedBox(height: 50), // Add spacing
+
+              // Camera Button - fixed height container
+              Container(
+                height: 80, // Fixed height
+                child: GestureDetector(
+                  onTap: () {/* Add camera logic */},
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/icons/Camera.png',
+                          width: 40,
+                          height: 40,
+                        ),
+                        const SizedBox(width: 15),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Take a photo of dashboard",
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black),
+                            ),
+                            Text(
+                              "Please take a clear photo",
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 50), // Add spacing
+
+              // Fuel Status Header
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20.0),
+                child: RichText(
+                  text: const TextSpan(
+                    children: [
+                      TextSpan(
+                        text: "What is your ",
+                        style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF6D6BF8)),
+                      ),
+                      TextSpan(
+                        text: "current fuel\nstatus",
+                        style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF54C1D5)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Fuel Status Selection - increased fixed height
+              Container(
+                height: 80, // Increased height from 60 to 80
                 child: AnimatedBuilder(
                   animation: _animationController,
                   builder: (context, child) {
@@ -216,10 +230,12 @@ class _MileageFormState extends State<MileageForm>
                 ),
               ),
 
-              const SizedBox(height: 100),
+              // Spacer to push button to bottom
+              const Spacer(),
 
               // Next Button
-              Align(
+              Container(
+                height: 100, // Fixed height
                 alignment: Alignment.center,
                 child: SizedBox(
                   width: 80,
@@ -257,10 +273,15 @@ class _MileageFormState extends State<MileageForm>
     if (isFullTank == null) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
+        // Wrap in Flexible to handle potential overflow
         children: [
-          _buildFuelStatusButton("Full tank", true),
-          const SizedBox(width: 15),
-          _buildFuelStatusButton("Refuel needed", false),
+          Flexible(
+            child: _buildFuelStatusButton("Full tank", true),
+          ),
+          const SizedBox(width: 12), // Reduced spacing to prevent overflow
+          Flexible(
+            child: _buildFuelStatusButton("Refuel needed", false),
+          ),
         ],
       );
     } else {
@@ -271,34 +292,79 @@ class _MileageFormState extends State<MileageForm>
 
   Widget _buildFuelStatusButton(String text, bool value) {
     final isSelected = isFullTank == value;
+
+    // Define colors based on selection and button type
+    final Color iconColor = value
+        ? const Color(0xFF20b24d) // Green for full tank
+        : Colors.amber; // Amber for refuel needed
+
+    final Color borderColor = value
+        ? const Color(0xFF20b24d) // Green border for full tank
+        : Colors.amber; // Amber border for refuel needed
+
+    final Color bgColor = isSelected
+        ? Colors.black
+            .withOpacity(0.7) // Slightly transparent black when selected
+        : Colors.grey.shade900; // Default background
+
+    // Button icon based on type
+    final IconData buttonIcon = value
+        ? Icons.local_gas_station_rounded // Gas station icon for full tank
+        : Icons.warning_amber_rounded; // Warning icon for refuel needed
+
     return GestureDetector(
       onTap: () => _handleFuelStatusTap(value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 24),
+        // Adjust padding to be slightly smaller to fix overflow
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
         decoration: BoxDecoration(
-          color: Colors.grey.shade900,
-          borderRadius: BorderRadius.circular(20),
-          border: isSelected
-              ? Border.all(color: const Color(0xFF6D6BF8), width: 2)
+          color: bgColor,
+          gradient: isSelected
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    value
+                        ? const Color(0xFF1a8538).withOpacity(0.3)
+                        : Colors.amber.shade700.withOpacity(0.3),
+                    bgColor,
+                  ],
+                )
               : null,
+          borderRadius: BorderRadius.circular(25), // Increased border radius
+          border: Border.all(
+            color: isSelected ? borderColor : Colors.transparent,
+            width: isSelected ? 2.5 : 0, // Slightly thicker border
+          ),
+          boxShadow: [
+            if (isSelected)
+              BoxShadow(
+                color: borderColor.withOpacity(0.5),
+                blurRadius: 10, // Increased blur
+                spreadRadius: 2, // Increased spread
+              ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.water_drop,
-              color:
-                  isSelected ? const Color(0xFF20b24d) : Colors.yellow.shade600,
-              size: 18,
+              buttonIcon,
+              color: iconColor,
+              size: 22, // Slightly reduced icon size
             ),
-            const SizedBox(width: 8),
-            Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
+            const SizedBox(width: 8), // Reduced spacing
+            // Add constraints to text to handle overflow
+            Flexible(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 15, // Slightly reduced font size
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: Colors.white,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
