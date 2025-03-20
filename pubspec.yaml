@@ -50,6 +50,7 @@ dependencies:
   pretty_qr_code: ^3.3.0
   flutter_launcher_icons: ^0.14.3
   shared_preferences: ^2.2.2 # Added shared_preferences
+  url_launcher: ^6.1.10  # or the latest version
 
 dev_dependencies:
   flutter_test:

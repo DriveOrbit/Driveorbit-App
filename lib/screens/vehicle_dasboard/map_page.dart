@@ -394,11 +394,20 @@ class _MapPageState extends State<MapPage> {
 
                       // Jobs Button - Moved outside of ScrollView to make it fixed
                       _buildActionButton("View Job Assignments", onPressed: () {
-                        Navigator.of(context).push(
+                        Navigator.of(context)
+                            .push(
                           MaterialPageRoute(
                             builder: (_) => const JobAssignedPage(),
                           ),
-                        );
+                        )
+                            .then((_) {
+                          // Optional: refresh data when returning from job assignments page
+                          if (mounted) {
+                            setState(() {
+                              // Reset any state if needed after returning
+                            });
+                          }
+                        });
                       }),
                       SizedBox(height: 20.h),
 
@@ -549,7 +558,27 @@ class _MapPageState extends State<MapPage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onPressed,
+        onTap: () async {
+          // Show loading indicator when button is pressed
+          if (onPressed != null) {
+            setState(() {
+              _isLoading = true; // Set loading state
+            });
+
+            try {
+              await Future.delayed(const Duration(
+                  milliseconds: 100)); // Brief delay for UI feedback
+              onPressed(); // Execute the callback
+            } finally {
+              // In case we come back from navigation, ensure loading is reset
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
+            }
+          }
+        },
         borderRadius: BorderRadius.circular(15), // Increased radius
         splashColor: const Color(0xFF6D6BF8).withOpacity(0.4),
         highlightColor: Colors.grey[800],
