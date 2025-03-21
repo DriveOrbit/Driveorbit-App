@@ -1,5 +1,6 @@
 import 'package:driveorbit_app/Screens/dashboard/dashboard_driver_page.dart';
 import 'package:driveorbit_app/models/notification_model.dart';
+import 'package:driveorbit_app/screens/profile/driver_profile.dart';
 import 'package:driveorbit_app/screens/vehicle_dasboard/driver_button.dart';
 import 'package:driveorbit_app/services/notification_service.dart';
 import 'package:driveorbit_app/widgets/notification_drawer.dart';
@@ -1941,27 +1942,35 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Flexible(
-                      child: RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: '${getGreeting()} ',
-                              style: GoogleFonts.poppins(
-                                color: const Color(0xFF6D6BF8),
-                                fontSize: 22.sp,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => DriverProfile()));
+                        },
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '${getGreeting()} ',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF6D6BF8),
+                                  fontSize: 22.sp,
+                                ),
                               ),
-                            ),
-                            TextSpan(
-                              text: _firstName.isNotEmpty
-                                  ? '$_firstName!'
-                                  : 'Driver!',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20.sp,
+                              TextSpan(
+                                text: _firstName.isNotEmpty
+                                    ? '$_firstName!'
+                                    : 'Driver!',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20.sp,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -1975,46 +1984,54 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                               strokeWidth: 2,
                             ),
                           )
-                        : Stack(
-                            children: [
-                              CircleAvatar(
-                                radius: 20.r,
-                                backgroundImage: _profilePictureUrl.isNotEmpty
-                                    ? NetworkImage(_profilePictureUrl)
-                                        as ImageProvider
-                                    : const AssetImage(
-                                        'assets/default_avatar.jpg'),
-                                onBackgroundImageError: (_, __) {
-                                  setState(() {
-                                    _profilePictureUrl =
-                                        'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
-                                  });
-                                },
-                              ),
-                              // Notification indicator on avatar
-                              if (_hasUnreadNotifications)
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: Container(
-                                    width: 12,
-                                    height: 12,
-                                    decoration: BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.black,
-                                        width: 2,
+                        : GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => DriverProfile()));
+                            },
+                            child: Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20.r,
+                                  backgroundImage: _profilePictureUrl.isNotEmpty
+                                      ? NetworkImage(_profilePictureUrl)
+                                          as ImageProvider
+                                      : const AssetImage(
+                                          'assets/default_avatar.jpg'),
+                                  onBackgroundImageError: (_, __) {
+                                    setState(() {
+                                      _profilePictureUrl =
+                                          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
+                                    });
+                                  },
+                                ),
+                                // Notification indicator on avatar
+                                if (_hasUnreadNotifications)
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.black,
+                                          width: 2,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                   ],
                 ),
-                // Remove the actions section that contained the notification button
               ),
+
         body: Stack(
           children: [
             // Main content
