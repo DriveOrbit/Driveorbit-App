@@ -1,4 +1,5 @@
 import 'package:driveorbit_app/Screens/profile/driver_profile.dart';
+import 'package:driveorbit_app/widgets/BulletPoint_%20ToolItem.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -295,7 +296,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                 ),
                 const SizedBox(height: 16),
 
-              // Warning messages
+                // Warning messages
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -311,6 +312,53 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.red[400],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Add after warnings
+                const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Vehicle Information
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Vehicle Information',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          BulletPoint(text: 'Vehicle Type: van'),
+                          BulletPoint(text: 'Fuel Type: Petrol'),
+                          BulletPoint(text: 'Gear System: Auto'),
+                        ],
+                      ),
+                    ),
+
+                    // Available Tools
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Available Tools',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          ToolItem(
+                              text: 'Spare Tyre & Toolkit', available: true),
+                          ToolItem(text: 'Emergency Kit', available: true),
+                        ],
                       ),
                     ),
                   ],
