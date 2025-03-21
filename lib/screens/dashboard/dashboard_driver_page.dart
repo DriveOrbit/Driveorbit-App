@@ -854,7 +854,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
                             'Avatar tapped, navigating to profile'); // Debug print
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const DriverProfile(),
+                            builder: (context) => const DriverProfilePage(),
                           ),
                         );
                       },

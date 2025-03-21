@@ -1,20 +1,8 @@
-import 'package:driveorbit_app/Screens/vehicle_dasboard/map_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:driveorbit_app/screens/auth/login_page.dart'; // Add this import
-
-class DriverProfile extends StatelessWidget {
-  const DriverProfile({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    // Remove the MaterialApp wrapper and directly return the DriverProfilePage
-    // This ensures proper navigation integration with the parent app
-    return const DriverProfilePage();
-  }
-}
 
 class DriverProfilePage extends StatefulWidget {
   const DriverProfilePage({Key? key}) : super(key: key);
@@ -68,12 +56,6 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
         _isLoading = false;
       });
     }
-  }
-
-  void _showErrorSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
   }
 
   @override

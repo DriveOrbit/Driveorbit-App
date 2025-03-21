@@ -1,4 +1,5 @@
 import 'package:driveorbit_app/Screens/dashboard/dashboard_driver_page.dart';
+import 'package:driveorbit_app/Screens/vehicle_dasboard/vehicle_info.dart';
 import 'package:driveorbit_app/models/notification_model.dart';
 import 'package:driveorbit_app/screens/profile/driver_profile.dart';
 import 'package:driveorbit_app/screens/vehicle_dasboard/driver_button.dart';
@@ -54,7 +55,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
   // Add fuel warning status
   bool _needsFuelRefill = false;
-  bool _showingFuelWarning = false;
 
   // Add job status tracking variables
   bool _isJobInProgress =
@@ -1947,7 +1947,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const DriverProfile()));
+                                  builder: (context) =>
+                                      const DriverProfilePage()));
                         },
                         child: RichText(
                           text: TextSpan(
@@ -1990,7 +1991,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) =>
-                                          const DriverProfile()));
+                                          const DriverProfilePage()));
                             },
                             child: Stack(
                               children: [
@@ -2443,13 +2444,20 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
           const Spacer(),
           InkWell(
             onTap: () {
-              // Navigate to vehicle details page or show dialog
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Vehicle details will be available soon"),
-                  duration: Duration(seconds: 2),
+              Navigator.of(context)
+                  .push(
+                MaterialPageRoute(
+                  builder: (_) => const VehicleInfoPage(),
                 ),
-              );
+              )
+                  .then((_) {
+                // Optional: refresh data when returning from job assignments page
+                if (mounted) {
+                  setState(() {
+                    // Reset any state if needed after returning
+                  });
+                }
+              });
             },
             borderRadius: BorderRadius.circular(20),
             child: Container(
