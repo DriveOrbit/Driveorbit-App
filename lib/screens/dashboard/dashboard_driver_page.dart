@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driveorbit_app/models/notification_model.dart';
 import 'package:driveorbit_app/models/vehicle_details_entity.dart';
 import 'package:driveorbit_app/screens/dashboard/driver_history_page.dart';
+import 'package:driveorbit_app/screens/profile/driver_profile.dart'; // Add this import
 import 'package:driveorbit_app/screens/qr_scan/qr_scan_page.dart';
 import 'package:driveorbit_app/services/notification_service.dart';
 import 'package:driveorbit_app/widgets/notification_drawer.dart';
@@ -845,38 +846,60 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
             _isLoading
                 ? const CircularProgressIndicator(
                     color: Colors.white, strokeWidth: 2)
-                : Stack(
-                    children: [
-                      CircleAvatar(
-                        backgroundImage: _profilePictureUrl.isNotEmpty
-                            ? NetworkImage(_profilePictureUrl) as ImageProvider
-                            : const AssetImage('assets/default_avatar.jpg'),
-                        onBackgroundImageError: (_, __) {
-                          setState(() {
-                            _profilePictureUrl =
-                                'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
-                          });
-                        },
-                      ),
-                      // Notification indicator on avatar
-                      if (_hasUnreadNotifications)
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.black,
-                                width: 2,
-                              ),
-                            ),
+                : Material(
+                    type: MaterialType.transparency,
+                    child: InkWell(
+                      onTap: () {
+                        print(
+                            'Avatar tapped, navigating to profile'); // Debug print
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const DriverProfile(),
                           ),
+                        );
+                      },
+                      borderRadius:
+                          BorderRadius.circular(20), // Circular hit area
+                      splashColor: const Color(0xFF6D6BF8).withOpacity(0.3),
+                      highlightColor: Colors.white24,
+                      child: Ink(
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              backgroundImage: _profilePictureUrl.isNotEmpty
+                                  ? NetworkImage(_profilePictureUrl)
+                                      as ImageProvider
+                                  : const AssetImage(
+                                      'assets/default_avatar.jpg'),
+                              onBackgroundImageError: (_, __) {
+                                setState(() {
+                                  _profilePictureUrl =
+                                      'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
+                                });
+                              },
+                            ),
+                            // Notification indicator on avatar
+                            if (_hasUnreadNotifications)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.black,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                    ],
+                      ),
+                    ),
                   ),
           ],
         ),

@@ -1947,7 +1947,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                           Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => DriverProfile()));
+                                  builder: (context) => const DriverProfile()));
                         },
                         child: RichText(
                           text: TextSpan(
@@ -1989,7 +1989,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => DriverProfile()));
+                                      builder: (context) =>
+                                          const DriverProfile()));
                             },
                             child: Stack(
                               children: [
