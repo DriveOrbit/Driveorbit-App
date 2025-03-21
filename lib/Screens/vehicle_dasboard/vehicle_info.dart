@@ -214,7 +214,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                 ),
                 const SizedBox(height: 16),
 
-              // Vehicle title
+                // Vehicle title
                 const Center(
                   child: Text(
                     'TOYOTA KDH 201 SUPARIAL GL',
@@ -237,6 +237,85 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // Vehicle condition
+                Row(
+                  children: [
+                    const Text(
+                      'Vehicle overall condition is : ',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    Text(
+                      'Good',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[400],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Fuel consumption
+                Row(
+                  children: [
+                    const Text(
+                      'Average Fuel consumption : ',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    Text(
+                      '12.3 KM/L',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber[400],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Recommended destination
+                Row(
+                  children: [
+                    const Text(
+                      'Recommended Destination : ',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    Text(
+                      '1022 KM',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber[400],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+              // Warning messages
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '-Please Check Tyre Pressure and Condition',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.red[400],
+                      ),
+                    ),
+                    Text(
+                      '-Fog Lights are not working',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.red[400],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
