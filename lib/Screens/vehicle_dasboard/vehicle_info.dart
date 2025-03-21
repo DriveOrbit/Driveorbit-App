@@ -9,8 +9,82 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
+// Add this class to store maintenance item data
+class MaintenanceItem {
+  final String title;
+  final String status;
+  final String date;
+  final double percentage;
+  final Color color;
+
+  MaintenanceItem({
+    required this.title,
+    required this.status,
+    required this.date,
+    required this.percentage,
+    required this.color,
+  });
+}
+
 class VehicleInfoPage extends StatefulWidget {
   const VehicleInfoPage({Key? key}) : super(key: key);
+
+  Map<String, MaintenanceItem> calculateMaintenanceStatus() {
+    // Define recommended days between maintenance for each item
+    final recommendedIntervals = {
+      'Engine Oil': 90, // 3 months
+      'Coolant Level': 180, // 6 months
+      'Brake Fluid': 365, // 1 year
+      'Transmission Fluid': 730, // 2 years
+      'Battery Health': 180, // 6 months
+      'Tyre Pressure & Condition': 30, // 1 month
+      'Brakes Condition': 180, // 6 months
+      'Lights & Signals': 90, // 3 months
+      'Wiper Blades & Fluid': 90, // 3 months
+    };
+
+    // Sample last check dates (in a real app, these would come from your database)
+    final lastCheckDates = {
+      'Engine Oil': '08/12/2024',
+      'Coolant Level': '08/12/2024',
+      'Brake Fluid': '08/12/2024',
+      'Transmission Fluid': '',
+      'Battery Health': '08/12/2024',
+      'Tyre Pressure & Condition': '',
+      'Brakes Condition': '08/12/2024',
+      'Lights & Signals': '08/12/2024',
+      'Wiper Blades & Fluid': 'Last week',
+    };
+
+    // Calculate status for each maintenance item
+    final result = <String, MaintenanceItem>{};
+
+    lastCheckDates.forEach((key, date) {
+      final days = recommendedIntervals[key] ?? 90;
+      final percentage = MaintenanceIndicator.calculatePercentage(date, days);
+      final color = MaintenanceIndicator.getColorForPercentage(percentage);
+
+      String status;
+      if (percentage >= 75) {
+        status = 'Good';
+      } else if (percentage >= 25) {
+        status = 'Check Soon';
+      } else {
+        status = 'Check Now';
+      }
+
+      result[key] = MaintenanceItem(
+        title: key,
+        status: status,
+        date: date,
+        percentage: percentage,
+        color: color,
+      );
+    });
+
+    return result;
+  }
 
   @override
   State<VehicleInfoPage> createState() => _VehicleInfoPageState();
@@ -206,11 +280,11 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                 // Add after the header in the Column children
                 Container(
                   width: double.infinity,
-                  height: 180,
+                  height: 280,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     image: const DecorationImage(
-                      image: AssetImage('assets/truck1.png'),
+                      image: AssetImage('assets/KDH.png'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -367,6 +441,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                 ),
                 const SizedBox(height: 20),
 
+                // Replace the maintenance indicators section with this code
                 const Text(
                   'Maintenance Status',
                   style: TextStyle(
@@ -376,82 +451,128 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                 ),
                 const SizedBox(height: 16),
 
-// First row of indicators
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: const [
-                    MaintenanceIndicator(
-                      title: 'Engine Oil',
-                      status: 'Last check',
-                      date: '08/12/2024',
-                      statusColor: Colors.blue,
-                    ),
-                    MaintenanceIndicator(
-                      title: 'Coolant Level',
-                      status: 'Last check',
-                      date: '08/12/2024',
-                      statusColor: Colors.blue,
-                    ),
-                    MaintenanceIndicator(
-                      title: 'Brake Fluid',
-                      status: 'Last check',
-                      date: '08/12/2024',
-                      statusColor: Colors.blue,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
+// Calculate maintenance status
+                Builder(builder: (context) {
+                  final maintenanceItems = widget.calculateMaintenanceStatus();
 
-// Second row of indicators
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: const [
-                    MaintenanceIndicator(
-                      title: 'Transmission Fluid',
-                      status: 'Didn\'t check',
-                      date: 'Please check it',
-                      statusColor: Colors.red,
-                    ),
-                    MaintenanceIndicator(
-                      title: 'Battery Health',
-                      status: 'Last check',
-                      date: '08/12/2024',
-                      statusColor: Colors.blue,
-                    ),
-                    MaintenanceIndicator(
-                      title: 'Tyre Pressure & Condition',
-                      status: 'NEED TO CHECK',
-                      date: '',
-                      statusColor: Colors.red,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
+                  return Column(
+                    children: [
+                      // First row of indicators
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          MaintenanceIndicator(
+                            title: 'Engine Oil',
+                            status: maintenanceItems['Engine Oil']!.status,
+                            date: maintenanceItems['Engine Oil']!.date,
+                            statusColor: maintenanceItems['Engine Oil']!.color,
+                            percentage:
+                                maintenanceItems['Engine Oil']!.percentage,
+                          ),
+                          MaintenanceIndicator(
+                            title: 'Coolant Level',
+                            status: maintenanceItems['Coolant Level']!.status,
+                            date: maintenanceItems['Coolant Level']!.date,
+                            statusColor:
+                                maintenanceItems['Coolant Level']!.color,
+                            percentage:
+                                maintenanceItems['Coolant Level']!.percentage,
+                          ),
+                          MaintenanceIndicator(
+                            title: 'Brake Fluid',
+                            status: maintenanceItems['Brake Fluid']!.status,
+                            date: maintenanceItems['Brake Fluid']!.date,
+                            statusColor: maintenanceItems['Brake Fluid']!.color,
+                            percentage:
+                                maintenanceItems['Brake Fluid']!.percentage,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
 
-// Third row of indicators
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: const [
-                    MaintenanceIndicator(
-                      title: 'Brakes Condition',
-                      status: 'Last check',
-                      date: '08/12/2024',
-                      statusColor: Colors.blue,
-                    ),
-                    MaintenanceIndicator(
-                      title: 'Lights & Signals',
-                      status: 'Last check',
-                      date: '08/12/2024',
-                      statusColor: Colors.blue,
-                    ),
-                    MaintenanceIndicator(
-                      title: 'Wiper Blades & Fluid',
-                      status: 'Last check',
-                      date: 'Last week',
-                      statusColor: Colors.blue,
-                    ),
-                  ],
-                ),
+                      // Second row of indicators
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          MaintenanceIndicator(
+                            title: 'Transmission Fluid',
+                            status:
+                                maintenanceItems['Transmission Fluid']!.status,
+                            date: 'Please check it',
+                            statusColor:
+                                maintenanceItems['Transmission Fluid']!.color,
+                            percentage: maintenanceItems['Transmission Fluid']!
+                                .percentage,
+                          ),
+                          MaintenanceIndicator(
+                            title: 'Battery Health',
+                            status: maintenanceItems['Battery Health']!.status,
+                            date: maintenanceItems['Battery Health']!.date,
+                            statusColor:
+                                maintenanceItems['Battery Health']!.color,
+                            percentage:
+                                maintenanceItems['Battery Health']!.percentage,
+                          ),
+                          MaintenanceIndicator(
+                            title: 'Tyre Pressure & Condition',
+                            status:
+                                maintenanceItems['Tyre Pressure & Condition']!
+                                    .status,
+                            date: maintenanceItems['Tyre Pressure & Condition']!
+                                .date,
+                            statusColor:
+                                maintenanceItems['Tyre Pressure & Condition']!
+                                    .color,
+                            percentage:
+                                maintenanceItems['Tyre Pressure & Condition']!
+                                    .percentage,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Third row of indicators
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          MaintenanceIndicator(
+                            title: 'Brakes Condition',
+                            status:
+                                maintenanceItems['Brakes Condition']!.status,
+                            date: maintenanceItems['Brakes Condition']!.date,
+                            statusColor:
+                                maintenanceItems['Brakes Condition']!.color,
+                            percentage: maintenanceItems['Brakes Condition']!
+                                .percentage,
+                          ),
+                          MaintenanceIndicator(
+                            title: 'Lights & Signals',
+                            status:
+                                maintenanceItems['Lights & Signals']!.status,
+                            date: maintenanceItems['Lights & Signals']!.date,
+                            statusColor:
+                                maintenanceItems['Lights & Signals']!.color,
+                            percentage: maintenanceItems['Lights & Signals']!
+                                .percentage,
+                          ),
+                          MaintenanceIndicator(
+                            title: 'Wiper Blades & Fluid',
+                            status: maintenanceItems['Wiper Blades & Fluid']!
+                                .status,
+                            date:
+                                maintenanceItems['Wiper Blades & Fluid']!.date,
+                            statusColor:
+                                maintenanceItems['Wiper Blades & Fluid']!.color,
+                            percentage:
+                                maintenanceItems['Wiper Blades & Fluid']!
+                                    .percentage,
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                }),
+
                 const SizedBox(height: 20),
 
                 Positioned(
