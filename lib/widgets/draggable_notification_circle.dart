@@ -7,11 +7,11 @@ class DraggableNotificationCircle extends StatefulWidget {
   final bool showIndicator;
 
   const DraggableNotificationCircle({
-    Key? key,
+    super.key,
     required this.notificationCount,
     required this.onDragComplete,
     this.showIndicator = true,
-  }) : super(key: key);
+  });
 
   @override
   State<DraggableNotificationCircle> createState() =>

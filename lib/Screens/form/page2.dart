@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:driveorbit_app/screens/vehicle_dasboard/map_page.dart'; // Import map page
 import 'package:image_picker/image_picker.dart'; // Add this import
 import 'dart:io'; // Add this import
+import 'package:shared_preferences/shared_preferences.dart'; // Add SharedPreferences
 
 class MileageForm extends StatefulWidget {
   const MileageForm({super.key});
@@ -95,6 +96,13 @@ class _MileageFormState extends State<MileageForm>
         _animationController.forward(from: 0);
       }
     });
+  }
+
+  // Save fuel status to SharedPreferences
+  Future<void> _saveFuelStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Save the fuel status (true = full tank, false = refuel needed)
+    await prefs.setBool('fuel_tank_full', isFullTank ?? true);
   }
 
   @override
@@ -329,14 +337,19 @@ class _MileageFormState extends State<MileageForm>
                       height: 80,
                       child: IconButton(
                         onPressed: isFormValid
-                            ? () {
+                            ? () async {
+                                // Save fuel status before navigating
+                                await _saveFuelStatus();
+
                                 // Navigate to Map page when form is complete
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const MapPage(),
-                                  ),
-                                );
+                                if (mounted) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const MapPage(),
+                                    ),
+                                  );
+                                }
                               }
                             : null,
                         icon: Image.asset(

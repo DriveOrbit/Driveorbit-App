@@ -83,9 +83,6 @@ class _LoginPageState extends State<LoginPage>
   }
 
   // Password validation (must be at least 6 characters)
-  bool _isPasswordValid(String password) {
-    return password.length >= 6;
-  }
 
   Future<void> login(String email, String password) async {
     // Reset error messages

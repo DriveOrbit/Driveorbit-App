@@ -51,6 +51,15 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   AnimationController? _notificationHintController;
   bool _hasShownNotificationTutorial = false;
 
+  // Add fuel warning status
+  bool _needsFuelRefill = false;
+  bool _showingFuelWarning = false;
+
+  // Add job status tracking variables
+  bool _isJobInProgress =
+      true; // Default to true - assuming driver has an active job
+  bool _isJobCompleted = false;
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +70,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     _getCurrentLocation();
     _loadUserData();
     _loadNotifications();
+    _checkFuelStatus(); // Add fuel status check
 
     // Initialize notification hint animation controller
     _notificationHintController = AnimationController(
@@ -374,6 +384,22 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     }
   }
 
+  // Add method to check fuel status
+  Future<void> _checkFuelStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final bool isFuelTankFull = prefs.getBool('fuel_tank_full') ?? true;
+
+      if (mounted) {
+        setState(() {
+          _needsFuelRefill = !isFuelTankFull;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking fuel status: $e');
+    }
+  }
+
   @override
   void dispose() {
     durationTimer?.cancel();
@@ -444,6 +470,43 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                 ),
               ),
 
+              // Add fuel warning banner if needed
+              if (_needsFuelRefill)
+                Container(
+                  width: double.infinity,
+                  padding:
+                      EdgeInsets.symmetric(vertical: 10.h, horizontal: 16.w),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.2),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.amber.withOpacity(0.5),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.amber,
+                        size: 24.sp,
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Text(
+                          "Low fuel! Please refill as soon as possible.",
+                          style: GoogleFonts.poppins(
+                            color: Colors.amber,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // Buttons section
               Padding(
                 padding: EdgeInsets.all(16.w),
@@ -482,16 +545,19 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
                     SizedBox(height: 12.h),
 
-                    // Fuel Filling
+                    // Fuel Filling - Modified with warning icon if needed
                     _buildDriverActionButton(
                       icon: Icons.local_gas_station,
-                      color: Colors.amber,
+                      color: _needsFuelRefill ? Colors.amber : Colors.blue,
                       title: "Fuel Filling",
-                      description: "Record a fuel filling transaction",
+                      description: _needsFuelRefill
+                          ? "⚠️ Refill fuel as soon as possible"
+                          : "Record a fuel filling transaction",
                       onTap: () {
                         Navigator.pop(context); // Close modal
                         _handleFuelFilling();
                       },
+                      showWarning: _needsFuelRefill,
                     ),
                   ],
                 ),
@@ -522,13 +588,14 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // Driver action button with solid black background
+  // Driver action button with solid black background - Added showWarning parameter
   Widget _buildDriverActionButton({
     required IconData icon,
     required Color color,
     required String title,
     required String description,
     required VoidCallback onTap,
+    bool showWarning = false, // Add parameter for warning indicator
   }) {
     return InkWell(
       onTap: onTap,
@@ -538,21 +605,55 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         decoration: BoxDecoration(
           color: Colors.black, // Solid black background
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: color.withOpacity(0.5)),
+          border: Border.all(
+            color: showWarning ? Colors.amber : color.withOpacity(0.5),
+            width: showWarning ? 2.0 : 1.0, // Thicker border for warning
+          ),
+          boxShadow: showWarning
+              ? [
+                  BoxShadow(
+                    color: Colors.amber.withOpacity(0.3),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
-            Container(
-              padding: EdgeInsets.all(12.w),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 24.sp,
-              ),
+            Stack(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(12.w),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 24.sp,
+                  ),
+                ),
+                if (showWarning)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: EdgeInsets.all(4.w),
+                      decoration: BoxDecoration(
+                        color: Colors.amber,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 1.5),
+                      ),
+                      child: Icon(
+                        Icons.warning,
+                        color: Colors.black,
+                        size: 10.sp,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             SizedBox(width: 16.w),
             Expanded(
@@ -570,8 +671,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                   Text(
                     description,
                     style: GoogleFonts.poppins(
-                      color: Colors.grey[400],
+                      color: showWarning ? Colors.amber : Colors.grey[400],
                       fontSize: 12.sp,
+                      fontWeight:
+                          showWarning ? FontWeight.w500 : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -664,6 +767,12 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                               ),
                             ),
                             onPressed: () {
+                              // Update job status
+                              setState(() {
+                                _isJobCompleted = true;
+                                _isJobInProgress = false;
+                              });
+
                               Navigator.pop(context);
                               // Show job completion form instead of just showing a snackbar
                               _showJobCompletionForm();
@@ -697,6 +806,11 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
     final notesController = TextEditingController();
     double fuelPercentage = 50.0; // Default value
+
+    // Add validation state variables
+    bool isMileageValid = true;
+    bool isFuelSelected = true;
+    Duration tripDuration = DateTime.now().difference(startTime);
 
     showDialog(
       context: context,
@@ -859,24 +973,81 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                           ),
                         ),
 
-                        // Current mileage field with enhanced style
+                        // Trip Statistics Card - NEW SECTION
+                        Container(
+                          width: double.infinity,
+                          margin: EdgeInsets.only(bottom: 20.h),
+                          padding: EdgeInsets.all(16.w),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(
+                              color: const Color(0xFF6D6BF8).withOpacity(0.5),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Trip Statistics",
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14.sp,
+                                ),
+                              ),
+                              SizedBox(height: 12.h),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildStatDetail(
+                                      "Distance",
+                                      "${totalMileage.toStringAsFixed(1)} KM",
+                                      Icons.route,
+                                      const Color(0xFF6D6BF8),
+                                    ),
+                                  ),
+                                  SizedBox(width: 16.w),
+                                  Expanded(
+                                    child: _buildStatDetail(
+                                      "Duration",
+                                      formatDuration(tripDuration),
+                                      Icons.timer,
+                                      Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Current mileage field with enhanced style and validation
                         LabeledTextField(
-                          label: "Current Mileage (KM)",
+                          label: "Current Mileage (KM) *",
                           controller: mileageController,
                           keyboardType: TextInputType.number,
                           prefixIcon: Icons.speed,
                           hintText: "Enter current mileage",
+                          isValid: isMileageValid,
+                          errorText: "Mileage is required",
+                          onChanged: (value) {
+                            setState(() {
+                              isMileageValid = value.trim().isNotEmpty;
+                            });
+                          },
                         ),
                         SizedBox(height: 20.h),
 
-                        // Enhanced fuel percentage slider
+                        // Enhanced fuel percentage slider with validation label
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              "Fuel Tank Level (Estimate)",
+                              "Fuel Tank Level (Estimate) *",
                               style: GoogleFonts.poppins(
-                                color: Colors.white,
+                                color:
+                                    isFuelSelected ? Colors.white : Colors.red,
                                 fontWeight: FontWeight.w500,
                                 fontSize: 14.sp,
                               ),
@@ -932,119 +1103,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                             ),
                           ],
                         ),
-                        SizedBox(height: 8.h),
 
-                        // Fuel gauge visualization
-                        Container(
-                          height: 50.h,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8.r),
-                            color: Colors.black.withOpacity(0.3),
-                          ),
-                          padding: EdgeInsets.all(4.w),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              return Stack(
-                                children: [
-                                  // Background track
-                                  Container(
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(6.r),
-                                      color: Colors.grey.shade800,
-                                    ),
-                                  ),
-                                  // Progress bar
-                                  AnimatedContainer(
-                                    duration: const Duration(milliseconds: 300),
-                                    width: constraints.maxWidth *
-                                        (fuelPercentage / 100),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(6.r),
-                                      gradient: LinearGradient(
-                                        colors: fuelPercentage > 70
-                                            ? [
-                                                Colors.green.shade400,
-                                                Colors.green.shade700
-                                              ]
-                                            : fuelPercentage > 30
-                                                ? [
-                                                    Colors.orange.shade300,
-                                                    Colors.orange.shade700
-                                                  ]
-                                                : [
-                                                    Colors.red.shade300,
-                                                    Colors.red.shade700
-                                                  ],
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color:
-                                              _getFuelLevelColor(fuelPercentage)
-                                                  .withOpacity(0.4),
-                                          blurRadius: 6,
-                                          spreadRadius: 1,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                        // ...existing fuel gauge visualization code...
 
-                                  // Fuel level markers
-                                  ...List.generate(
-                                    5,
-                                    (i) => Positioned(
-                                      left: constraints.maxWidth * (i / 4),
-                                      top: 0,
-                                      bottom: 0,
-                                      child: Center(
-                                        child: Container(
-                                          width: 1,
-                                          height: 10.h,
-                                          color: Colors.white.withOpacity(0.3),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-
-                                  // Fuel level indicator thumb
-                                  Positioned(
-                                    left: (constraints.maxWidth *
-                                            (fuelPercentage / 100)) -
-                                        10.w,
-                                    top: 0,
-                                    bottom: 0,
-                                    child: Center(
-                                      child: Container(
-                                        width: 20.w,
-                                        height: 20.w,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: _getFuelLevelColor(
-                                                fuelPercentage),
-                                            width: 2,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.3),
-                                              blurRadius: 4,
-                                              spreadRadius: 1,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-
-                        // Slider for adjusting fuel level
+                        // Slider for adjusting fuel level with onChanged to update validation
                         SliderTheme(
                           data: SliderTheme.of(context).copyWith(
                             activeTrackColor:
@@ -1066,21 +1128,24 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                             onChanged: (value) {
                               setState(() {
                                 fuelPercentage = value;
+                                isFuelSelected =
+                                    true; // Mark as selected when user moves slider
                               });
                             },
                           ),
                         ),
                         SizedBox(height: 20.h),
 
-                        // Additional notes with enhanced styling
+                        // Additional notes with enhanced styling (optional field)
                         LabeledTextField(
-                          label: "Additional Notes",
+                          label: "Additional Notes (Optional)",
                           controller: notesController,
                           keyboardType: TextInputType.multiline,
                           prefixIcon: Icons.note_alt_outlined,
                           hintText:
                               "Any additional details about the job completion...",
                           maxLines: 3,
+                          isValid: true, // Always valid as it's optional
                         ),
 
                         SizedBox(height: 24.h),
@@ -1089,7 +1154,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                         Divider(color: Colors.grey.shade700),
                         SizedBox(height: 16.h),
 
-                        // Action buttons with enhanced styling
+                        // Action buttons with enhanced styling and validation
                         Row(
                           children: [
                             Expanded(
@@ -1117,146 +1182,183 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                               flex: 3,
                               child: ElevatedButton(
                                 onPressed: () {
-                                  // Save job completion data if needed
+                                  // Validate form fields
+                                  setState(() {
+                                    isMileageValid = mileageController.text
+                                        .trim()
+                                        .isNotEmpty;
+                                    // Consider the slider value selected if user moved it
+                                    isFuelSelected = true;
+                                  });
 
-                                  // Show a success dialog before redirecting
-                                  showDialog(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (context) => WillPopScope(
-                                      onWillPop: () async => false,
-                                      child: Dialog(
-                                        backgroundColor: Colors.transparent,
-                                        elevation: 0,
-                                        child: Container(
-                                          padding: EdgeInsets.all(20.w),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey.shade900,
-                                            borderRadius:
-                                                BorderRadius.circular(20.r),
-                                            border: Border.all(
-                                                color: Colors.green, width: 2),
-                                          ),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              // Success animation
-                                              TweenAnimationBuilder<double>(
-                                                tween: Tween<double>(
-                                                    begin: 0.0, end: 1.0),
-                                                duration: const Duration(
-                                                    milliseconds: 800),
-                                                curve: Curves.elasticOut,
-                                                builder:
-                                                    (context, value, child) {
-                                                  return Transform.scale(
-                                                    scale: value,
-                                                    child: Container(
-                                                      width: 80.w,
-                                                      height: 80.w,
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.green
-                                                            .withOpacity(0.2),
-                                                        shape: BoxShape.circle,
-                                                      ),
-                                                      child: Center(
-                                                        child: Icon(
-                                                          Icons.check_circle,
-                                                          color: Colors.green,
-                                                          size: 60.sp,
+                                  // Only proceed if all required fields are valid
+                                  if (isMileageValid && isFuelSelected) {
+                                    // Save job completion data if needed
+
+                                    // Reset job status for next job
+                                    this.setState(() {
+                                      _isJobInProgress = false;
+                                      _isJobCompleted = false;
+                                    });
+
+                                    // Close the completion form first
+                                    Navigator.pop(context);
+
+                                    // Show success dialog before redirecting
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (context) => WillPopScope(
+                                        onWillPop: () async => false,
+                                        child: Dialog(
+                                          backgroundColor: Colors.transparent,
+                                          elevation: 0,
+                                          child: Container(
+                                            padding: EdgeInsets.all(20.w),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade900,
+                                              borderRadius:
+                                                  BorderRadius.circular(20.r),
+                                              border: Border.all(
+                                                  color: Colors.green,
+                                                  width: 2),
+                                            ),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                // Success animation
+                                                TweenAnimationBuilder<double>(
+                                                  tween: Tween<double>(
+                                                      begin: 0.0, end: 1.0),
+                                                  duration: const Duration(
+                                                      milliseconds: 800),
+                                                  curve: Curves.elasticOut,
+                                                  builder:
+                                                      (context, value, child) {
+                                                    return Transform.scale(
+                                                      scale: value,
+                                                      child: Container(
+                                                        width: 80.w,
+                                                        height: 80.w,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors.green
+                                                              .withOpacity(0.2),
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                        child: Center(
+                                                          child: Icon(
+                                                            Icons.check_circle,
+                                                            color: Colors.green,
+                                                            size: 60.sp,
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                              SizedBox(height: 16.h),
-                                              Text(
-                                                "Job Completed!",
-                                                style: GoogleFonts.poppins(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 20.sp,
+                                                    );
+                                                  },
                                                 ),
-                                              ),
-                                              SizedBox(height: 8.h),
-                                              Text(
-                                                "Thank you for completing this job successfully.",
-                                                textAlign: TextAlign.center,
-                                                style: GoogleFonts.poppins(
-                                                  color: Colors.grey.shade300,
-                                                  fontSize: 14.sp,
+                                                SizedBox(height: 16.h),
+                                                Text(
+                                                  "Job Completed!",
+                                                  style: GoogleFonts.poppins(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 20.sp,
+                                                  ),
                                                 ),
-                                              ),
-                                              SizedBox(height: 24.h),
+                                                SizedBox(height: 8.h),
+                                                Text(
+                                                  "Thank you for completing this job successfully.",
+                                                  textAlign: TextAlign.center,
+                                                  style: GoogleFonts.poppins(
+                                                    color: Colors.grey.shade300,
+                                                    fontSize: 14.sp,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 24.h),
 
-                                              // Auto-redirecting in 2 seconds
-                                              TweenAnimationBuilder<double>(
-                                                tween: Tween<double>(
-                                                    begin: 0.0, end: 1.0),
-                                                duration:
-                                                    const Duration(seconds: 2),
-                                                onEnd: () {
-                                                  // Navigate to dashboard after completion
-                                                  Navigator.of(context)
-                                                      .pushAndRemoveUntil(
-                                                    PageRouteBuilder(
-                                                      pageBuilder: (context,
-                                                              animation,
-                                                              secondaryAnimation) =>
-                                                          const DashboardDriverPage(),
-                                                      transitionsBuilder:
-                                                          (context,
-                                                              animation,
-                                                              secondaryAnimation,
-                                                              child) {
-                                                        return FadeTransition(
-                                                          opacity: animation,
-                                                          child: child,
-                                                        );
-                                                      },
-                                                      transitionDuration:
-                                                          const Duration(
-                                                              milliseconds:
-                                                                  500),
-                                                    ),
-                                                    (route) => false,
-                                                  );
-                                                },
-                                                builder:
-                                                    (context, value, child) {
-                                                  return Column(
-                                                    children: [
-                                                      // Progress indicator
-                                                      LinearProgressIndicator(
-                                                        value: value,
-                                                        backgroundColor: Colors
-                                                            .grey.shade800,
-                                                        valueColor:
-                                                            const AlwaysStoppedAnimation<
-                                                                    Color>(
-                                                                Colors.green),
+                                                // Auto-redirecting in 2 seconds
+                                                TweenAnimationBuilder<double>(
+                                                  tween: Tween<double>(
+                                                      begin: 0.0, end: 1.0),
+                                                  duration: const Duration(
+                                                      seconds: 2),
+                                                  onEnd: () {
+                                                    // Navigate to dashboard after completion
+                                                    Navigator.of(context)
+                                                        .pushAndRemoveUntil(
+                                                      PageRouteBuilder(
+                                                        pageBuilder: (context,
+                                                                animation,
+                                                                secondaryAnimation) =>
+                                                            const DashboardDriverPage(),
+                                                        transitionsBuilder:
+                                                            (context,
+                                                                animation,
+                                                                secondaryAnimation,
+                                                                child) {
+                                                          return FadeTransition(
+                                                            opacity: animation,
+                                                            child: child,
+                                                          );
+                                                        },
+                                                        transitionDuration:
+                                                            const Duration(
+                                                                milliseconds:
+                                                                    500),
                                                       ),
-                                                      SizedBox(height: 8.h),
-                                                      Text(
-                                                        "Redirecting to dashboard...",
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                          color: Colors
-                                                              .grey.shade400,
-                                                          fontSize: 12.sp,
+                                                      (route) => false,
+                                                    );
+                                                  },
+                                                  builder:
+                                                      (context, value, child) {
+                                                    return Column(
+                                                      children: [
+                                                        // Progress indicator
+                                                        LinearProgressIndicator(
+                                                          value: value,
+                                                          backgroundColor:
+                                                              Colors.grey
+                                                                  .shade800,
+                                                          valueColor:
+                                                              const AlwaysStoppedAnimation<
+                                                                      Color>(
+                                                                  Colors.green),
                                                         ),
-                                                      ),
-                                                    ],
-                                                  );
-                                                },
-                                              ),
-                                            ],
+                                                        SizedBox(height: 8.h),
+                                                        Text(
+                                                          "Redirecting to dashboard...",
+                                                          style: GoogleFonts
+                                                              .poppins(
+                                                            color: Colors
+                                                                .grey.shade400,
+                                                            fontSize: 12.sp,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  );
+                                    );
+                                  } else {
+                                    // Show validation error effect (fields are already marked)
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                          "Please fill all required fields marked with *",
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                        backgroundColor: Colors.red.shade700,
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
@@ -1301,18 +1403,52 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // Method to get fuel level color based on percentage
-  Color _getFuelLevelColor(double percentage) {
-    if (percentage > 70) {
-      return Colors.green;
-    } else if (percentage > 30) {
-      return Colors.orange;
-    } else {
-      return Colors.red;
-    }
+  // Helper widget for trip statistics items
+  Widget _buildStatDetail(
+      String label, String value, IconData icon, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(8.w),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: color,
+            size: 18.sp,
+          ),
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  color: Colors.grey.shade400,
+                  fontSize: 12.sp,
+                ),
+              ),
+              Text(
+                value,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14.sp,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
-  // Helper class for consistent text field styling
+  // Helper class for consistent text field styling - updated with validation
   Widget LabeledTextField({
     required String label,
     required TextEditingController controller,
@@ -1320,6 +1456,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     required String hintText,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
+    bool isValid = true,
+    String errorText = "",
+    Function(String)? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1327,7 +1466,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         Text(
           label,
           style: GoogleFonts.poppins(
-            color: Colors.white,
+            color: isValid ? Colors.white : Colors.red,
             fontWeight: FontWeight.w500,
             fontSize: 14.sp,
           ),
@@ -1352,6 +1491,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               fontSize: 14.sp,
             ),
             maxLines: maxLines,
+            onChanged: onChanged,
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.grey.shade800.withOpacity(0.7),
@@ -1362,7 +1502,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               ),
               prefixIcon: Icon(
                 prefixIcon,
-                color: Colors.grey.shade400,
+                color: isValid ? Colors.grey.shade400 : Colors.red.shade300,
                 size: 18.sp,
               ),
               border: OutlineInputBorder(
@@ -1376,16 +1516,22 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
                 borderSide: BorderSide(
-                  color: Colors.grey.shade700,
+                  color: isValid ? Colors.grey.shade700 : Colors.red,
                   width: 1,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
-                borderSide: const BorderSide(
-                  color: Colors.green,
+                borderSide: BorderSide(
+                  color: isValid ? Colors.green : Colors.red,
                   width: 2,
                 ),
+              ),
+              // Show error message if field is invalid
+              errorText: !isValid ? errorText : null,
+              errorStyle: TextStyle(
+                color: Colors.red,
+                fontSize: 12.sp,
               ),
             ),
           ),
@@ -1394,7 +1540,18 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     );
   }
 
-  // Handle fuel filling action with blurred dialog - fixed with proper form
+  // Method to get fuel level color based on percentage
+  Color _getFuelLevelColor(double percentage) {
+    if (percentage > 70) {
+      return Colors.green;
+    } else if (percentage > 30) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
+  }
+
+  // Handle fuel filling action with blurred dialog - modified to update fuel status
   void _handleFuelFilling() {
     // Show fuel filling form dialog with blur effect
     final amountController = TextEditingController();
@@ -1476,6 +1633,39 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Show warning message if refill needed
+                      if (_needsFuelRefill)
+                        Container(
+                          margin: EdgeInsets.only(bottom: 20.h),
+                          padding: EdgeInsets.all(12.w),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8.r),
+                            border: Border.all(
+                              color: Colors.amber.withOpacity(0.5),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.amber,
+                                size: 20.sp,
+                              ),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Text(
+                                  "Completing this form will update your fuel status",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.amber,
+                                    fontSize: 12.sp,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
                       // Amount field
                       Text(
                         "Amount (Rs)",
@@ -1642,16 +1832,55 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                           SizedBox(width: 16.w),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () {
-                                // Here you would save the fuel filling data
-                                Navigator.pop(context);
+                              onPressed: () async {
+                                // Update the fuel tank status in SharedPreferences
+                                final prefs =
+                                    await SharedPreferences.getInstance();
+                                await prefs.setBool('fuel_tank_full', true);
 
-                                // Show success message
+                                // Update the UI state
+                                if (mounted) {
+                                  setState(() {
+                                    _needsFuelRefill = false;
+                                  });
+                                }
+
+                                // Show success message with specific content about fuel status
+                                Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text(
-                                        "Fuel filling record saved successfully!"),
-                                    backgroundColor: Colors.amber.shade700,
+                                    content: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                "Fuel filling recorded!",
+                                                style: GoogleFonts.poppins(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                "Your fuel status has been updated",
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 12.sp,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    backgroundColor: Colors.green.shade700,
+                                    duration: const Duration(seconds: 3),
                                   ),
                                 );
                               },
@@ -1689,254 +1918,290 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     Duration currentDuration = DateTime.now().difference(startTime);
     final screenHeight = MediaQuery.of(context).size.height;
 
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: Colors.black,
-      // Special handling for map page - conditionally enable edge swipe
-      drawerEnableOpenDragGesture: !_isMapFullScreen,
-      drawerEdgeDragWidth: MediaQuery.of(context).size.width * 0.5,
-      drawer: NotificationDrawer(
-        notifications: _notifications,
-        onMarkAsRead: _markAsRead,
-        onMarkAllAsRead: _markAllAsRead,
-        hasUnreadNotifications: _hasUnreadNotifications,
-      ),
-      appBar: _isMapFullScreen
-          ? null
-          : AppBar(
-              backgroundColor: Colors.black,
-              automaticallyImplyLeading: false,
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Flexible(
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '${getGreeting()} ',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF6D6BF8),
-                              fontSize: 22.sp,
-                            ),
-                          ),
-                          TextSpan(
-                            text: _firstName.isNotEmpty
-                                ? '$_firstName!'
-                                : 'Driver!',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20.sp,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 9.w),
-                  _isLoading
-                      ? SizedBox(
-                          width: 40.w,
-                          height: 40.h,
-                          child: const CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Stack(
+    return WillPopScope(
+      onWillPop: _onWillPop, // Add back button handling
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: Colors.black,
+        // Special handling for map page - conditionally enable edge swipe
+        drawerEnableOpenDragGesture: !_isMapFullScreen,
+        drawerEdgeDragWidth: MediaQuery.of(context).size.width * 0.5,
+        drawer: NotificationDrawer(
+          notifications: _notifications,
+          onMarkAsRead: _markAsRead,
+          onMarkAllAsRead: _markAllAsRead,
+          hasUnreadNotifications: _hasUnreadNotifications,
+        ),
+        appBar: _isMapFullScreen
+            ? null
+            : AppBar(
+                backgroundColor: Colors.black,
+                automaticallyImplyLeading: false,
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Flexible(
+                      child: RichText(
+                        text: TextSpan(
                           children: [
-                            CircleAvatar(
-                              radius: 20.r,
-                              backgroundImage: _profilePictureUrl.isNotEmpty
-                                  ? NetworkImage(_profilePictureUrl)
-                                      as ImageProvider
-                                  : const AssetImage(
-                                      'assets/default_avatar.jpg'),
-                              onBackgroundImageError: (_, __) {
-                                setState(() {
-                                  _profilePictureUrl =
-                                      'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
-                                });
-                              },
-                            ),
-                            // Notification indicator on avatar
-                            if (_hasUnreadNotifications)
-                              Positioned(
-                                right: 0,
-                                top: 0,
-                                child: Container(
-                                  width: 12,
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.black,
-                                      width: 2,
-                                    ),
-                                  ),
-                                ),
+                            TextSpan(
+                              text: '${getGreeting()} ',
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF6D6BF8),
+                                fontSize: 22.sp,
                               ),
+                            ),
+                            TextSpan(
+                              text: _firstName.isNotEmpty
+                                  ? '$_firstName!'
+                                  : 'Driver!',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20.sp,
+                              ),
+                            ),
                           ],
                         ),
-                ],
-              ),
-              // Remove the actions section that contained the notification button
-            ),
-      body: Stack(
-        children: [
-          // Main content
-          SafeArea(
-            child: Column(
-              children: [
-                // Map section - expanded to full screen if in fullscreen mode
-                _isMapFullScreen
-                    ? Expanded(
-                        child: _buildMapView(),
-                      )
-                    : SizedBox(
-                        height: screenHeight * 0.35,
-                        width: double.infinity,
-                        child: _buildMapView(),
                       ),
-
-                // Content area - only shown if not in fullscreen mode
-                if (!_isMapFullScreen)
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20.w),
-                      child: Column(
-                        children: [
-                          // Timeline header
-                          Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16.h),
-                            child: Text(
-                              "Today's Timeline",
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 20.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
+                    ),
+                    SizedBox(width: 9.w),
+                    _isLoading
+                        ? SizedBox(
+                            width: 40.w,
+                            height: 40.h,
+                            child: const CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
                             ),
-                          ),
-
-                          // Stats Row - Enhanced design
-                          Container(
-                            width: double.infinity,
-                            margin: EdgeInsets.only(bottom: 20.h),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Expanded(
-                                  child: _buildStatItem(
-                                    icon: Icons.speed_rounded,
-                                    value:
-                                        "${totalMileage.toStringAsFixed(1)} KM",
-                                    label: "Current Mileage",
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFF6D6BF8),
-                                        Color(0xFF5856D6)
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
+                          )
+                        : Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 20.r,
+                                backgroundImage: _profilePictureUrl.isNotEmpty
+                                    ? NetworkImage(_profilePictureUrl)
+                                        as ImageProvider
+                                    : const AssetImage(
+                                        'assets/default_avatar.jpg'),
+                                onBackgroundImageError: (_, __) {
+                                  setState(() {
+                                    _profilePictureUrl =
+                                        'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_firstName)}&background=random';
+                                  });
+                                },
+                              ),
+                              // Notification indicator on avatar
+                              if (_hasUnreadNotifications)
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.black,
+                                        width: 2,
+                                      ),
                                     ),
                                   ),
                                 ),
-                                SizedBox(
-                                    width: 12.w), // Space between the stats
-                                Expanded(
-                                  child: _buildStatItem(
-                                    icon: Icons.timer_outlined,
-                                    value: formatDuration(currentDuration),
-                                    label: "Current Duration",
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFF4CAF50),
-                                        Color(0xFF2E7D32)
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            ],
                           ),
+                  ],
+                ),
+                // Remove the actions section that contained the notification button
+              ),
+        body: Stack(
+          children: [
+            // Main content
+            SafeArea(
+              child: Column(
+                children: [
+                  // Map section - expanded to full screen if in fullscreen mode
+                  _isMapFullScreen
+                      ? Expanded(
+                          child: _buildMapView(),
+                        )
+                      : SizedBox(
+                          height: screenHeight * 0.35,
+                          width: double.infinity,
+                          child: _buildMapView(),
+                        ),
 
-                          // Jobs Button - Moved outside of ScrollView to make it fixed
-                          _buildActionButton("View Job Assignments",
-                              onPressed: () {
-                            Navigator.of(context)
-                                .push(
-                              MaterialPageRoute(
-                                builder: (_) => const JobAssignedPage(),
+                  // Content area - only shown if not in fullscreen mode
+                  if (!_isMapFullScreen)
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20.w),
+                        child: Column(
+                          children: [
+                            // Timeline header
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16.h),
+                              child: Text(
+                                "Today's Timeline",
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 20.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            )
-                                .then((_) {
-                              // Optional: refresh data when returning from job assignments page
-                              if (mounted) {
-                                setState(() {
-                                  // Reset any state if needed after returning
-                                });
-                              }
-                            });
-                          }),
-                          SizedBox(height: 20.h),
+                            ),
 
-                          // Content scrollable area
-                          Expanded(
-                            child: SingleChildScrollView(
-                              physics: const BouncingScrollPhysics(),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            // Stats Row - Enhanced design
+                            Container(
+                              width: double.infinity,
+                              margin: EdgeInsets.only(bottom: 20.h),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  // Vehicle Info
-                                  _buildVehicleInfoCard(),
-                                  // Add some bottom padding for scrolling
-                                  SizedBox(height: 16.h),
+                                  Expanded(
+                                    child: _buildStatItem(
+                                      icon: Icons.speed_rounded,
+                                      value:
+                                          "${totalMileage.toStringAsFixed(1)} KM",
+                                      label: "Current Mileage",
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF6D6BF8),
+                                          Color(0xFF5856D6)
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                      width: 12.w), // Space between the stats
+                                  Expanded(
+                                    child: _buildStatItem(
+                                      icon: Icons.timer_outlined,
+                                      value: formatDuration(currentDuration),
+                                      label: "Current Duration",
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF4CAF50),
+                                          Color(0xFF2E7D32)
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
+
+                            // Jobs Button - Moved outside of ScrollView to make it fixed
+                            _buildActionButton("View Job Assignments",
+                                onPressed: () {
+                              Navigator.of(context)
+                                  .push(
+                                MaterialPageRoute(
+                                  builder: (_) => const JobAssignedPage(),
+                                ),
+                              )
+                                  .then((_) {
+                                // Optional: refresh data when returning from job assignments page
+                                if (mounted) {
+                                  setState(() {
+                                    // Reset any state if needed after returning
+                                  });
+                                }
+                              });
+                            }),
+                            SizedBox(height: 20.h),
+
+                            // Content scrollable area
+                            Expanded(
+                              child: SingleChildScrollView(
+                                physics: const BouncingScrollPhysics(),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Vehicle Info
+                                    _buildVehicleInfoCard(),
+                                    // Add some bottom padding for scrolling
+                                    SizedBox(height: 16.h),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  // Steering Wheel - only shown if not in fullscreen mode
+                  if (!_isMapFullScreen)
+                    Container(
+                      height: 100.h, // Increased from 80.h
+                      alignment: Alignment.center,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Steering wheel button
+                          SizedBox(
+                            width: 80.w, // Increased from 60.w
+                            height: 80.w, // Increased from 60.w
+                            child: IconButton(
+                              icon: Image.asset(
+                                'assets/icons/steering.png',
+                                width: 70.w, // Increased from 50.w
+                                height: 70.w, // Increased from 50.w
+                                color: Colors.white,
+                              ),
+                              onPressed:
+                                  _showDriverOptions, // Use the new method to show options
+                            ),
                           ),
+
+                          // Fuel warning indicator
+                          if (_needsFuelRefill)
+                            Positioned(
+                              top: 15.h,
+                              right: 15.w,
+                              child: Container(
+                                padding: EdgeInsets.all(6.w),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.amber.withOpacity(0.5),
+                                      blurRadius: 8,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.black,
+                                  size: 16.sp,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
-                  ),
-
-                // Steering Wheel - only shown if not in fullscreen mode
-                if (!_isMapFullScreen)
-                  Container(
-                    height: 100.h, // Increased from 80.h
-                    alignment: Alignment.center,
-                    child: SizedBox(
-                      width: 80.w, // Increased from 60.w
-                      height: 80.w, // Increased from 60.w
-                      child: IconButton(
-                        icon: Image.asset(
-                          'assets/icons/steering.png',
-                          width: 70.w, // Increased from 50.w
-                          height: 70.w, // Increased from 50.w
-                          color: Colors.white,
-                        ),
-                        onPressed:
-                            _showDriverOptions, // Use the new method to show options
-                      ),
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          // Replace the old notification circle with the new animated one
-          if (_hasUnreadNotifications && !_isMapFullScreen)
-            DraggableNotificationCircle(
-              notificationCount: _unreadNotificationCount,
-              onDragComplete: () => _scaffoldKey.currentState?.openDrawer(),
-              showIndicator: true,
-            ),
-        ],
+            // Replace the old notification circle with the new animated one
+            if (_hasUnreadNotifications && !_isMapFullScreen)
+              DraggableNotificationCircle(
+                notificationCount: _unreadNotificationCount,
+                onDragComplete: () => _scaffoldKey.currentState?.openDrawer(),
+                showIndicator: true,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -2449,6 +2714,138 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             ),
         ],
       ),
+    );
+  }
+
+  // Handle back button press to prevent accidental navigation
+  Future<bool> _onWillPop() async {
+    if (!_isJobCompleted && _isJobInProgress) {
+      // If job is still in progress, show warning dialog
+      final shouldPop = await showDialog<bool>(
+        context: context,
+        builder: (context) => _buildJobIncompleteDialog(),
+      );
+      return shouldPop ?? false;
+    } else if (_isJobCompleted && !_isJobInProgress) {
+      // If job is completed but form not shown yet, show completion form
+      _showJobCompletionForm();
+      return false;
+    }
+
+    // Default case - allow navigation
+    return true;
+  }
+
+  // Dialog to show when trying to leave with job in progress
+  Widget _buildJobIncompleteDialog() {
+    return AlertDialog(
+      backgroundColor: Colors.grey.shade900,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      title: Row(
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            color: Colors.amber,
+            size: 28.sp,
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              "Job In Progress",
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18.sp,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "You still have an active job that needs to be completed.",
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 14.sp,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            "Please complete your current job before leaving this screen.",
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 14.sp,
+            ),
+          ),
+          SizedBox(height: 20.h),
+          Container(
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: Colors.amber.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(
+                color: Colors.amber.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: Colors.amber,
+                  size: 20.sp,
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                    "To complete a job, click on the steering wheel icon and select 'Job Done'.",
+                    style: GoogleFonts.poppins(
+                      color: Colors.amber,
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () =>
+              Navigator.of(context).pop(false), // Don't allow going back
+          child: Text(
+            "STAY ON THIS PAGE",
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF6D6BF8),
+              fontWeight: FontWeight.w600,
+              fontSize: 14.sp,
+            ),
+          ),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+          ),
+          onPressed: () => Navigator.of(context)
+              .pop(true), // Force navigation (emergency override)
+          child: Text(
+            "LEAVE ANYWAY",
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14.sp,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
