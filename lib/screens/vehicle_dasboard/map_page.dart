@@ -1,3 +1,4 @@
+import 'package:driveorbit_app/Screens/dashboard/dashboard_driver_page.dart';
 import 'package:driveorbit_app/models/notification_model.dart';
 import 'package:driveorbit_app/screens/vehicle_dasboard/driver_button.dart';
 import 'package:driveorbit_app/services/notification_service.dart';
@@ -13,6 +14,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:driveorbit_app/widgets/draggable_notification_circle.dart';
+import 'dart:ui';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -97,12 +99,12 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.swipe_right, color: Colors.white),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.swipe_right, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text(
                   'Swipe right from the left edge to view notifications',
                   style: TextStyle(color: Colors.white),
@@ -386,6 +388,1302 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     return _notifications.where((notification) => !notification.isRead).length;
   }
 
+  // Show driver options modal with multiple actions and blurred background
+  void _showDriverOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.5),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20.r),
+              topRight: Radius.circular(20.r),
+            ),
+            border: Border.all(
+              color: const Color(0xFF6D6BF8).withOpacity(0.7),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header with transparent background
+              ClipRRect(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20.r),
+                  topRight: Radius.circular(20.r),
+                ),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.grey[700]!.withOpacity(0.5),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        "Driver Actions",
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Buttons section
+              Padding(
+                padding: EdgeInsets.all(16.w),
+                child: Column(
+                  children: [
+                    // Emergency Assistance
+                    _buildDriverActionButton(
+                      icon: Icons.emergency,
+                      color: Colors.red,
+                      title: "Emergency Assistance",
+                      description: "Request help in case of emergency",
+                      onTap: () {
+                        Navigator.pop(context); // Close modal
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PanicButtonPage(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    SizedBox(height: 12.h),
+
+                    // Job Done
+                    _buildDriverActionButton(
+                      icon: Icons.check_circle_outline,
+                      color: Colors.green,
+                      title: "Job Done",
+                      description: "Mark current job as completed",
+                      onTap: () {
+                        Navigator.pop(context); // Close modal
+                        _handleJobDone();
+                      },
+                    ),
+
+                    SizedBox(height: 12.h),
+
+                    // Fuel Filling
+                    _buildDriverActionButton(
+                      icon: Icons.local_gas_station,
+                      color: Colors.amber,
+                      title: "Fuel Filling",
+                      description: "Record a fuel filling transaction",
+                      onTap: () {
+                        Navigator.pop(context); // Close modal
+                        _handleFuelFilling();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              // Cancel button with safe area for bottom padding
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: 16.h),
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      "CANCEL",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Driver action button with solid black background
+  Widget _buildDriverActionButton({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String description,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12.r),
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.black, // Solid black background
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: color.withOpacity(0.5)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 24.sp,
+              ),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  Text(
+                    description,
+                    style: GoogleFonts.poppins(
+                      color: Colors.grey[400],
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white.withOpacity(0.7),
+              size: 16.sp,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Handle job done action with blurred dialog
+  void _handleJobDone() {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16.r),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                padding: EdgeInsets.all(20.w),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(
+                      0.7), // Increased opacity for better visibility
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(
+                    color: Colors.green.withOpacity(0.7), // Increased opacity
+                    width: 1.5, // Slightly thicker border
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Mark Job as Completed",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18.sp,
+                      ),
+                    ),
+                    SizedBox(height: 16.h),
+                    Text(
+                      "Are you sure you want to mark the current job as completed?",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 14.sp,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 24.h),
+                    // Fix: Use a Row with proper button constraints
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Cancel button
+                        SizedBox(
+                          width: 100.w, // Fixed width
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              "Cancel",
+                              style: GoogleFonts.poppins(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Confirm button - Fixed width to prevent infinite constraints
+                        SizedBox(
+                          width: 120.w, // Fixed width
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: EdgeInsets.symmetric(vertical: 12.h),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              // Show job completion form instead of just showing a snackbar
+                              _showJobCompletionForm();
+                            },
+                            child: Text(
+                              "Confirm",
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // New method to show job completion form with enhanced UI
+  void _showJobCompletionForm() {
+    final mileageController = TextEditingController(
+      text: totalMileage.toStringAsFixed(1), // Pre-filled with current mileage
+    );
+    final notesController = TextEditingController();
+    double fuelPercentage = 50.0; // Default value
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent dismissing by tapping outside
+      barrierColor: Colors.black.withOpacity(0.7),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.grey.shade900,
+                    Colors.grey.shade800,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(
+                  color: Colors.green.withOpacity(0.7),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.green.withOpacity(0.2),
+                    blurRadius: 15,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Enhanced header with pulsing animation
+                  Stack(
+                    children: [
+                      // Header background
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          vertical: 20.h,
+                          horizontal: 16.w,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.green.shade700,
+                              Colors.green.shade900,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(18.r),
+                            topRight: Radius.circular(18.r),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            // Animated success icon
+                            TweenAnimationBuilder<double>(
+                              tween: Tween<double>(begin: 0.8, end: 1.0),
+                              duration: const Duration(milliseconds: 1500),
+                              curve: Curves.elasticOut,
+                              builder: (context, value, child) {
+                                return Transform.scale(
+                                  scale: value,
+                                  child: Container(
+                                    padding: EdgeInsets.all(8.w),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.check_circle_outline,
+                                      color: Colors.white,
+                                      size: 28.sp,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            SizedBox(width: 12.w),
+
+                            // Title with animation
+                            Expanded(
+                              child: TweenAnimationBuilder<double>(
+                                tween: Tween<double>(begin: 0.0, end: 1.0),
+                                duration: const Duration(milliseconds: 800),
+                                curve: Curves.easeOutCubic,
+                                builder: (context, value, child) {
+                                  return Opacity(
+                                    opacity: value,
+                                    child: Transform.translate(
+                                      offset: Offset(20 * (1.0 - value), 0),
+                                      child: Text(
+                                        "Job Completion Details",
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18.sp,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Decorative pill shaped indicators
+                      Positioned(
+                        top: 12.h,
+                        right: 16.w,
+                        child: Row(
+                          children: List.generate(
+                            3,
+                            (index) => Container(
+                              margin: EdgeInsets.only(left: 4.w),
+                              width: 6.w,
+                              height: 6.h,
+                              decoration: BoxDecoration(
+                                color: Colors.white
+                                    .withOpacity(0.5 - (index * 0.15)),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Form fields with enhanced styling
+                  Padding(
+                    padding: EdgeInsets.all(24.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Section label
+                        Container(
+                          margin: EdgeInsets.only(bottom: 8.h),
+                          child: Text(
+                            "COMPLETION DETAILS",
+                            style: GoogleFonts.poppins(
+                              color: Colors.grey.shade400,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ),
+
+                        // Current mileage field with enhanced style
+                        LabeledTextField(
+                          label: "Current Mileage (KM)",
+                          controller: mileageController,
+                          keyboardType: TextInputType.number,
+                          prefixIcon: Icons.speed,
+                          hintText: "Enter current mileage",
+                        ),
+                        SizedBox(height: 20.h),
+
+                        // Enhanced fuel percentage slider
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Fuel Tank Level (Estimate)",
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                            TweenAnimationBuilder<double>(
+                              tween: Tween<double>(begin: 0.0, end: 1.0),
+                              duration: const Duration(milliseconds: 1000),
+                              curve: Curves.elasticOut,
+                              builder: (context, value, child) {
+                                return Transform.scale(
+                                  scale: value,
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 10.w, vertical: 4.h),
+                                    decoration: BoxDecoration(
+                                      color: _getFuelLevelColor(fuelPercentage)
+                                          .withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(12.r),
+                                      border: Border.all(
+                                        color:
+                                            _getFuelLevelColor(fuelPercentage)
+                                                .withOpacity(0.5),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          fuelPercentage > 70
+                                              ? Icons.local_gas_station
+                                              : fuelPercentage > 30
+                                                  ? Icons.battery_4_bar
+                                                  : Icons.battery_alert,
+                                          color: _getFuelLevelColor(
+                                              fuelPercentage),
+                                          size: 14.sp,
+                                        ),
+                                        SizedBox(width: 4.w),
+                                        Text(
+                                          "${fuelPercentage.toStringAsFixed(0)}%",
+                                          style: GoogleFonts.poppins(
+                                            color: _getFuelLevelColor(
+                                                fuelPercentage),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14.sp,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8.h),
+
+                        // Fuel gauge visualization
+                        Container(
+                          height: 50.h,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8.r),
+                            color: Colors.black.withOpacity(0.3),
+                          ),
+                          padding: EdgeInsets.all(4.w),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Stack(
+                                children: [
+                                  // Background track
+                                  Container(
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(6.r),
+                                      color: Colors.grey.shade800,
+                                    ),
+                                  ),
+                                  // Progress bar
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    width: constraints.maxWidth *
+                                        (fuelPercentage / 100),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(6.r),
+                                      gradient: LinearGradient(
+                                        colors: fuelPercentage > 70
+                                            ? [
+                                                Colors.green.shade400,
+                                                Colors.green.shade700
+                                              ]
+                                            : fuelPercentage > 30
+                                                ? [
+                                                    Colors.orange.shade300,
+                                                    Colors.orange.shade700
+                                                  ]
+                                                : [
+                                                    Colors.red.shade300,
+                                                    Colors.red.shade700
+                                                  ],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color:
+                                              _getFuelLevelColor(fuelPercentage)
+                                                  .withOpacity(0.4),
+                                          blurRadius: 6,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Fuel level markers
+                                  ...List.generate(
+                                    5,
+                                    (i) => Positioned(
+                                      left: constraints.maxWidth * (i / 4),
+                                      top: 0,
+                                      bottom: 0,
+                                      child: Center(
+                                        child: Container(
+                                          width: 1,
+                                          height: 10.h,
+                                          color: Colors.white.withOpacity(0.3),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                  // Fuel level indicator thumb
+                                  Positioned(
+                                    left: (constraints.maxWidth *
+                                            (fuelPercentage / 100)) -
+                                        10.w,
+                                    top: 0,
+                                    bottom: 0,
+                                    child: Center(
+                                      child: Container(
+                                        width: 20.w,
+                                        height: 20.w,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: _getFuelLevelColor(
+                                                fuelPercentage),
+                                            width: 2,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color:
+                                                  Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                              spreadRadius: 1,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+
+                        // Slider for adjusting fuel level
+                        SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            activeTrackColor:
+                                _getFuelLevelColor(fuelPercentage),
+                            inactiveTrackColor: Colors.grey.shade800,
+                            thumbColor: _getFuelLevelColor(fuelPercentage),
+                            thumbShape: RoundSliderThumbShape(
+                              enabledThumbRadius: 12.r,
+                            ),
+                            overlayColor: _getFuelLevelColor(fuelPercentage)
+                                .withOpacity(0.2),
+                            trackHeight: 4.h,
+                          ),
+                          child: Slider(
+                            value: fuelPercentage,
+                            min: 0,
+                            max: 100,
+                            divisions: 20,
+                            onChanged: (value) {
+                              setState(() {
+                                fuelPercentage = value;
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(height: 20.h),
+
+                        // Additional notes with enhanced styling
+                        LabeledTextField(
+                          label: "Additional Notes",
+                          controller: notesController,
+                          keyboardType: TextInputType.multiline,
+                          prefixIcon: Icons.note_alt_outlined,
+                          hintText:
+                              "Any additional details about the job completion...",
+                          maxLines: 3,
+                        ),
+
+                        SizedBox(height: 24.h),
+
+                        // Divider before action buttons
+                        Divider(color: Colors.grey.shade700),
+                        SizedBox(height: 16.h),
+
+                        // Action buttons with enhanced styling
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: Colors.grey.shade500),
+                                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                ),
+                                child: Text(
+                                  "CANCEL",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey.shade300,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            Expanded(
+                              flex: 3,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  // Save job completion data if needed
+
+                                  // Show a success dialog before redirecting
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (context) => WillPopScope(
+                                      onWillPop: () async => false,
+                                      child: Dialog(
+                                        backgroundColor: Colors.transparent,
+                                        elevation: 0,
+                                        child: Container(
+                                          padding: EdgeInsets.all(20.w),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade900,
+                                            borderRadius:
+                                                BorderRadius.circular(20.r),
+                                            border: Border.all(
+                                                color: Colors.green, width: 2),
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              // Success animation
+                                              TweenAnimationBuilder<double>(
+                                                tween: Tween<double>(
+                                                    begin: 0.0, end: 1.0),
+                                                duration: const Duration(
+                                                    milliseconds: 800),
+                                                curve: Curves.elasticOut,
+                                                builder:
+                                                    (context, value, child) {
+                                                  return Transform.scale(
+                                                    scale: value,
+                                                    child: Container(
+                                                      width: 80.w,
+                                                      height: 80.w,
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.green
+                                                            .withOpacity(0.2),
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                      child: Center(
+                                                        child: Icon(
+                                                          Icons.check_circle,
+                                                          color: Colors.green,
+                                                          size: 60.sp,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                              SizedBox(height: 16.h),
+                                              Text(
+                                                "Job Completed!",
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 20.sp,
+                                                ),
+                                              ),
+                                              SizedBox(height: 8.h),
+                                              Text(
+                                                "Thank you for completing this job successfully.",
+                                                textAlign: TextAlign.center,
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.grey.shade300,
+                                                  fontSize: 14.sp,
+                                                ),
+                                              ),
+                                              SizedBox(height: 24.h),
+
+                                              // Auto-redirecting in 2 seconds
+                                              TweenAnimationBuilder<double>(
+                                                tween: Tween<double>(
+                                                    begin: 0.0, end: 1.0),
+                                                duration:
+                                                    const Duration(seconds: 2),
+                                                onEnd: () {
+                                                  // Navigate to dashboard after completion
+                                                  Navigator.of(context)
+                                                      .pushAndRemoveUntil(
+                                                    PageRouteBuilder(
+                                                      pageBuilder: (context,
+                                                              animation,
+                                                              secondaryAnimation) =>
+                                                          const DashboardDriverPage(),
+                                                      transitionsBuilder:
+                                                          (context,
+                                                              animation,
+                                                              secondaryAnimation,
+                                                              child) {
+                                                        return FadeTransition(
+                                                          opacity: animation,
+                                                          child: child,
+                                                        );
+                                                      },
+                                                      transitionDuration:
+                                                          const Duration(
+                                                              milliseconds:
+                                                                  500),
+                                                    ),
+                                                    (route) => false,
+                                                  );
+                                                },
+                                                builder:
+                                                    (context, value, child) {
+                                                  return Column(
+                                                    children: [
+                                                      // Progress indicator
+                                                      LinearProgressIndicator(
+                                                        value: value,
+                                                        backgroundColor: Colors
+                                                            .grey.shade800,
+                                                        valueColor:
+                                                            const AlwaysStoppedAnimation<
+                                                                    Color>(
+                                                                Colors.green),
+                                                      ),
+                                                      SizedBox(height: 8.h),
+                                                      Text(
+                                                        "Redirecting to dashboard...",
+                                                        style:
+                                                            GoogleFonts.poppins(
+                                                          color: Colors
+                                                              .grey.shade400,
+                                                          fontSize: 12.sp,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                                  elevation: 8,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle_outline,
+                                      color: Colors.white,
+                                      size: 18.sp,
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    Text(
+                                      "COMPLETE JOB",
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Method to get fuel level color based on percentage
+  Color _getFuelLevelColor(double percentage) {
+    if (percentage > 70) {
+      return Colors.green;
+    } else if (percentage > 30) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
+  }
+
+  // Helper class for consistent text field styling
+  Widget LabeledTextField({
+    required String label,
+    required TextEditingController controller,
+    required IconData prefixIcon,
+    required String hintText,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+            fontSize: 14.sp,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 14.sp,
+            ),
+            maxLines: maxLines,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.grey.shade800.withOpacity(0.7),
+              hintText: hintText,
+              hintStyle: GoogleFonts.poppins(
+                color: Colors.grey.shade500,
+                fontSize: 14.sp,
+              ),
+              prefixIcon: Icon(
+                prefixIcon,
+                color: Colors.grey.shade400,
+                size: 18.sp,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 14.h,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(
+                  color: Colors.grey.shade700,
+                  width: 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: const BorderSide(
+                  color: Colors.green,
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Handle fuel filling action with blurred dialog - fixed with proper form
+  void _handleFuelFilling() {
+    // Show fuel filling form dialog with blur effect
+    final amountController = TextEditingController();
+    final litersController = TextEditingController();
+    final notesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.6),
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[900],
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(
+                color: Colors.amber.withOpacity(0.7),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.amber.withOpacity(0.2),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    vertical: 16.h,
+                    horizontal: 16.w,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.amber.shade700,
+                        Colors.amber.shade900,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.local_gas_station,
+                        color: Colors.white,
+                        size: 24.sp,
+                      ),
+                      SizedBox(width: 10.w),
+                      Text(
+                        "Fuel Filling Details",
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Form fields
+                Padding(
+                  padding: EdgeInsets.all(24.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Amount field
+                      Text(
+                        "Amount (Rs)",
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      TextField(
+                        controller: amountController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          fillColor: Colors.black.withOpacity(0.2),
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: const BorderSide(
+                              color: Colors.amber,
+                            ),
+                          ),
+                          hintText: "Enter amount paid",
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 14.sp,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.attach_money,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+
+                      // Liters field
+                      Text(
+                        "Liters",
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      TextField(
+                        controller: litersController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          fillColor: Colors.black.withOpacity(0.2),
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: const BorderSide(
+                              color: Colors.amber,
+                            ),
+                          ),
+                          hintText: "Enter liters filled",
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 14.sp,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.water_drop_outlined,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+
+                      // Notes field
+                      Text(
+                        "Notes (Optional)",
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      TextField(
+                        controller: notesController,
+                        style: const TextStyle(color: Colors.white),
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          fillColor: Colors.black.withOpacity(0.2),
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: const BorderSide(
+                              color: Colors.amber,
+                            ),
+                          ),
+                          hintText: "Any additional notes...",
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 14.sp,
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 24.h),
+
+                      // Action buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.grey),
+                                padding: EdgeInsets.symmetric(vertical: 16.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                              ),
+                              child: Text(
+                                "CANCEL",
+                                style: GoogleFonts.poppins(
+                                  color: Colors.grey.shade300,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                // Here you would save the fuel filling data
+                                Navigator.pop(context);
+
+                                // Show success message
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                        "Fuel filling record saved successfully!"),
+                                    backgroundColor: Colors.amber.shade700,
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber,
+                                padding: EdgeInsets.symmetric(vertical: 16.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                              ),
+                              child: Text(
+                                "SUBMIT",
+                                style: GoogleFonts.poppins(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Duration currentDuration = DateTime.now().difference(startTime);
@@ -622,13 +1920,8 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                           height: 70.w, // Increased from 50.w
                           color: Colors.white,
                         ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => PanicButtonPage()),
-                          );
-                        },
+                        onPressed:
+                            _showDriverOptions, // Use the new method to show options
                       ),
                     ),
                   ),

@@ -30,12 +30,29 @@ class CompletedJobCard extends StatelessWidget {
         child: Container(
           margin: EdgeInsets.only(bottom: 8.h),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            // Replace transparent gradient with a solid fill color
+            color: Color(0xFF0A3D14), // Dark green base color
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF0F4B20), // Darker green
+                Color(0xFF164A29), // Slightly lighter green
+              ],
+            ),
             borderRadius: BorderRadius.circular(10.r),
             border: Border.all(
-              color: Colors.green.withOpacity(0.4),
-              width: 1,
+              color: Colors.green.withOpacity(0.7), // Increased opacity
+              width: 1.5, // Slightly thicker border
             ),
+            // Enhanced shadow for better depth
+            boxShadow: [
+              BoxShadow(
+                color: Colors.green.withOpacity(0.2),
+                blurRadius: 10,
+                spreadRadius: 2,
+              ),
+            ],
           ),
           child: Material(
             color: Colors.transparent,

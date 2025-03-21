@@ -106,7 +106,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.swipe_right, color: Colors.white),

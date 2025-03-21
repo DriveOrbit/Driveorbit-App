@@ -1,6 +1,4 @@
 import 'dart:typed_data';
-import 'dart:ui' as ui;
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -589,8 +587,6 @@ class ScannerOverlayClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     final double left = (size.width - scanAreaSize) / 2;
     final double top = (size.height - scanAreaSize) / 2;
-    final double right = left + scanAreaSize;
-    final double bottom = top + scanAreaSize;
 
     return Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))

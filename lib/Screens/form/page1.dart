@@ -4,8 +4,6 @@ import 'package:driveorbit_app/Screens/form/page2.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class PhotoUploadPage extends StatefulWidget {
   const PhotoUploadPage({super.key});

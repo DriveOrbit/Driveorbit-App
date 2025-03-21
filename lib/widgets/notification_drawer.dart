@@ -11,12 +11,12 @@ class NotificationDrawer extends StatelessWidget {
   final bool hasUnreadNotifications;
 
   const NotificationDrawer({
-    Key? key,
+    super.key,
     required this.notifications,
     required this.onMarkAsRead,
     required this.onMarkAllAsRead,
     required this.hasUnreadNotifications,
-  }) : super(key: key);
+  });
 
   // Get notification color based on type
   Color _getNotificationColor(String type) {

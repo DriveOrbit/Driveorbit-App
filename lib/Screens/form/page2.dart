@@ -208,9 +208,9 @@ class _MileageFormState extends State<MileageForm>
                             ? Container(
                                 width: 40,
                                 height: 40,
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: const Color(0xFF6D6BF8),
+                                  color: Color(0xFF6D6BF8),
                                 ),
                                 child: const Icon(
                                   Icons.check,
