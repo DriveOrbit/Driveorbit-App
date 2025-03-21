@@ -1,3 +1,4 @@
+import 'package:driveorbit_app/Screens/vehicle_dasboard/map_page.dart';
 import 'package:flutter/material.dart';
 
 class DriverProfile extends StatelessWidget {
@@ -43,6 +44,15 @@ class DriverProfilePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const MapPage()),
+            );
+          },
+        ),
         title: const Text(
           'Driver Profile',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -50,29 +60,29 @@ class DriverProfilePage extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: ResponsiveLayout(
+      body: const ResponsiveLayout(
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const ProfileHeader(),
-                const SizedBox(height: 24),
-                const AnimatedInfoCard(
+                ProfileHeader(),
+                SizedBox(height: 24),
+                AnimatedInfoCard(
                   title: 'Personal Information',
                   icon: Icons.person,
                   child: Column(
-                    children: const [
+                    children: [
                       InfoRow(
                         icon: Icons.person_outline,
                         label: 'First Name',
-                        value: 'Chamikara',
+                        value: 'Cupuni',
                       ),
                       InfoRow(
                         icon: Icons.person_outline,
                         label: 'Last Name',
-                        value: 'Dimuth',
+                        value: 'Cashikala',
                       ),
                       InfoRow(
                         icon: Icons.badge,
@@ -87,7 +97,7 @@ class DriverProfilePage extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 AnimatedInfoCard(
                   title: 'Contact Information',
                   icon: Icons.contact_phone,
@@ -97,38 +107,21 @@ class DriverProfilePage extends StatelessWidget {
                         icon: Icons.phone,
                         label: 'Phone',
                         value: '+1 (555) 123-4567',
-                        trailing: IconButton(
-                          icon: const Icon(Icons.call, color: Colors.green),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Calling...')),
-                            );
-                          },
-                        ),
                       ),
                       InfoRow(
                         icon: Icons.email,
                         label: 'Email',
                         value: 'driver@example.com',
-                        trailing: IconButton(
-                          icon: const Icon(Icons.email_outlined,
-                              color: Colors.blue),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Sending email...')),
-                            );
-                          },
-                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                const AnimatedInfoCard(
+                SizedBox(height: 16),
+                AnimatedInfoCard(
                   title: 'Status Information',
                   icon: Icons.info_outline,
                   child: Column(
-                    children: const [
+                    children: [
                       InfoRow(
                         icon: Icons.calendar_today,
                         label: 'Joined',
@@ -143,8 +136,8 @@ class DriverProfilePage extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
-                const LogoutButton(),
+                SizedBox(height: 40),
+                LogoutButton(),
               ],
             ),
           ),
@@ -200,7 +193,7 @@ class ProfileHeader extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Chamikara Dimuth',
+          'Cupuni Cashikala',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
