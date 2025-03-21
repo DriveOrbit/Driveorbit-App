@@ -1,4 +1,5 @@
 import 'package:driveorbit_app/Screens/profile/driver_profile.dart';
+import 'package:driveorbit_app/Screens/vehicle_dasboard/map_page.dart';
 import 'package:driveorbit_app/widgets/BulletPoint_%20ToolItem.dart';
 import 'package:driveorbit_app/widgets/maintenance_indicator.dart';
 import 'package:flutter/material.dart';
@@ -450,6 +451,44 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                       statusColor: Colors.blue,
                     ),
                   ],
+                ),
+                const SizedBox(height: 20),
+
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      child: IconButton(
+                        iconSize: 66,
+                        padding: EdgeInsets.zero,
+                        icon: Image.asset(
+                          'assets/icons/Nav-close.png',
+                          width: 55,
+                          height: 60,
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder: (context, animation1, animation2) =>
+                                  const MapPage(),
+                              transitionDuration:
+                                  const Duration(milliseconds: 300),
+                              transitionsBuilder: (context, animation,
+                                  secondaryAnimation, child) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: child,
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
