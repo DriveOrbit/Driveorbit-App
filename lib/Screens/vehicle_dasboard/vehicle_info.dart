@@ -1,5 +1,6 @@
 import 'package:driveorbit_app/Screens/profile/driver_profile.dart';
 import 'package:driveorbit_app/widgets/BulletPoint_%20ToolItem.dart';
+import 'package:driveorbit_app/widgets/maintenance_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -364,6 +365,92 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                   ],
                 ),
                 const SizedBox(height: 20),
+
+                const Text(
+                  'Maintenance Status',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+// First row of indicators
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: const [
+                    MaintenanceIndicator(
+                      title: 'Engine Oil',
+                      status: 'Last check',
+                      date: '08/12/2024',
+                      statusColor: Colors.blue,
+                    ),
+                    MaintenanceIndicator(
+                      title: 'Coolant Level',
+                      status: 'Last check',
+                      date: '08/12/2024',
+                      statusColor: Colors.blue,
+                    ),
+                    MaintenanceIndicator(
+                      title: 'Brake Fluid',
+                      status: 'Last check',
+                      date: '08/12/2024',
+                      statusColor: Colors.blue,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+// Second row of indicators
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: const [
+                    MaintenanceIndicator(
+                      title: 'Transmission Fluid',
+                      status: 'Didn\'t check',
+                      date: 'Please check it',
+                      statusColor: Colors.red,
+                    ),
+                    MaintenanceIndicator(
+                      title: 'Battery Health',
+                      status: 'Last check',
+                      date: '08/12/2024',
+                      statusColor: Colors.blue,
+                    ),
+                    MaintenanceIndicator(
+                      title: 'Tyre Pressure & Condition',
+                      status: 'NEED TO CHECK',
+                      date: '',
+                      statusColor: Colors.red,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+// Third row of indicators
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: const [
+                    MaintenanceIndicator(
+                      title: 'Brakes Condition',
+                      status: 'Last check',
+                      date: '08/12/2024',
+                      statusColor: Colors.blue,
+                    ),
+                    MaintenanceIndicator(
+                      title: 'Lights & Signals',
+                      status: 'Last check',
+                      date: '08/12/2024',
+                      statusColor: Colors.blue,
+                    ),
+                    MaintenanceIndicator(
+                      title: 'Wiper Blades & Fluid',
+                      status: 'Last check',
+                      date: 'Last week',
+                      statusColor: Colors.blue,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
