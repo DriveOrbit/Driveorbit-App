@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class BulletPoint extends StatelessWidget {
   final String text;
-  
+
   const BulletPoint({Key? key, required this.text}) : super(key: key);
 
   @override
@@ -23,8 +23,9 @@ class BulletPoint extends StatelessWidget {
 class ToolItem extends StatelessWidget {
   final String text;
   final bool available;
-  
-  const ToolItem({Key? key, required this.text, required this.available}) : super(key: key);
+
+  const ToolItem({Key? key, required this.text, required this.available})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
