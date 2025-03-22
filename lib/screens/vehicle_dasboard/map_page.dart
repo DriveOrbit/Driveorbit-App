@@ -813,6 +813,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     bool isMileageValid = true;
     bool isFuelSelected = true;
     Duration tripDuration = DateTime.now().difference(startTime);
+    bool isSubmitting = false; // Add this to track submission state
 
     showDialog(
       context: context,
@@ -1162,7 +1163,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                             Expanded(
                               flex: 2,
                               child: OutlinedButton(
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: isSubmitting
+                                    ? null
+                                    : () => Navigator.pop(context),
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(color: Colors.grey.shade500),
                                   padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -1183,212 +1186,306 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                             Expanded(
                               flex: 3,
                               child: ElevatedButton(
-                                onPressed: () {
-                                  // Validate form fields
-                                  setState(() {
-                                    isMileageValid = mileageController.text
-                                        .trim()
-                                        .isNotEmpty;
-                                    // Consider the slider value selected if user moved it
-                                    isFuelSelected = true;
-                                  });
+                                onPressed: isSubmitting
+                                    ? null
+                                    : () async {
+                                        // Validate form fields
+                                        setState(() {
+                                          isMileageValid = mileageController
+                                              .text
+                                              .trim()
+                                              .isNotEmpty;
+                                          // Consider the slider value selected if user moved it
+                                          isFuelSelected = true;
+                                        });
 
-                                  // Only proceed if all required fields are valid
-                                  if (isMileageValid && isFuelSelected) {
-                                    // Save job completion data if needed
+                                        // Only proceed if all required fields are valid
+                                        if (isMileageValid && isFuelSelected) {
+                                          setState(() {
+                                            isSubmitting =
+                                                true; // Disable button while submitting
+                                          });
 
-                                    // Reset job status for next job
-                                    this.setState(() {
-                                      _isJobInProgress = false;
-                                      _isJobCompleted = false;
-                                    });
+                                          // Save job completion data
+                                          try {
+                                            // Get values from form
+                                            final endMileage = double.tryParse(
+                                                    mileageController.text
+                                                        .trim()) ??
+                                                0.0;
+                                            final notes =
+                                                notesController.text.trim();
+                                            final fuelLevel = fuelPercentage;
 
-                                    // Close the completion form first
-                                    Navigator.pop(context);
+                                            // Store completion data in Firestore
+                                            await _completeJobInFirestore(
+                                                endMileage: endMileage,
+                                                notes: notes,
+                                                fuelLevel: fuelLevel);
 
-                                    // Show success dialog before redirecting
-                                    showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (context) => WillPopScope(
-                                        onWillPop: () async => false,
-                                        child: Dialog(
-                                          backgroundColor: Colors.transparent,
-                                          elevation: 0,
-                                          child: Container(
-                                            padding: EdgeInsets.all(20.w),
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey.shade900,
-                                              borderRadius:
-                                                  BorderRadius.circular(20.r),
-                                              border: Border.all(
-                                                  color: Colors.green,
-                                                  width: 2),
-                                            ),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                // Success animation
-                                                TweenAnimationBuilder<double>(
-                                                  tween: Tween<double>(
-                                                      begin: 0.0, end: 1.0),
-                                                  duration: const Duration(
-                                                      milliseconds: 800),
-                                                  curve: Curves.elasticOut,
-                                                  builder:
-                                                      (context, value, child) {
-                                                    return Transform.scale(
-                                                      scale: value,
-                                                      child: Container(
-                                                        width: 80.w,
-                                                        height: 80.w,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: Colors.green
-                                                              .withOpacity(0.2),
-                                                          shape:
-                                                              BoxShape.circle,
-                                                        ),
-                                                        child: Center(
-                                                          child: Icon(
-                                                            Icons.check_circle,
-                                                            color: Colors.green,
-                                                            size: 60.sp,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                                SizedBox(height: 16.h),
-                                                Text(
-                                                  "Job Completed!",
-                                                  style: GoogleFonts.poppins(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 20.sp,
-                                                  ),
-                                                ),
-                                                SizedBox(height: 8.h),
-                                                Text(
-                                                  "Thank you for completing this job successfully.",
-                                                  textAlign: TextAlign.center,
-                                                  style: GoogleFonts.poppins(
-                                                    color: Colors.grey.shade300,
-                                                    fontSize: 14.sp,
-                                                  ),
-                                                ),
-                                                SizedBox(height: 24.h),
+                                            // Reset job status for next job
+                                            this.setState(() {
+                                              _isJobInProgress = false;
+                                              _isJobCompleted = false;
+                                            });
 
-                                                // Auto-redirecting in 2 seconds
-                                                TweenAnimationBuilder<double>(
-                                                  tween: Tween<double>(
-                                                      begin: 0.0, end: 1.0),
-                                                  duration: const Duration(
-                                                      seconds: 2),
-                                                  onEnd: () {
-                                                    // Navigate to dashboard after completion
-                                                    Navigator.of(context)
-                                                        .pushAndRemoveUntil(
-                                                      PageRouteBuilder(
-                                                        pageBuilder: (context,
-                                                                animation,
-                                                                secondaryAnimation) =>
-                                                            const DashboardDriverPage(),
-                                                        transitionsBuilder:
-                                                            (context,
-                                                                animation,
-                                                                secondaryAnimation,
-                                                                child) {
-                                                          return FadeTransition(
-                                                            opacity: animation,
-                                                            child: child,
-                                                          );
-                                                        },
-                                                        transitionDuration:
-                                                            const Duration(
-                                                                milliseconds:
-                                                                    500),
-                                                      ),
-                                                      (route) => false,
-                                                    );
-                                                  },
-                                                  builder:
-                                                      (context, value, child) {
-                                                    return Column(
+                                            // Close the completion form first
+                                            Navigator.pop(context);
+
+                                            // Show success dialog before redirecting
+                                            showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (context) =>
+                                                  WillPopScope(
+                                                onWillPop: () async => false,
+                                                child: Dialog(
+                                                  backgroundColor:
+                                                      Colors.transparent,
+                                                  elevation: 0,
+                                                  child: Container(
+                                                    padding:
+                                                        EdgeInsets.all(20.w),
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          Colors.grey.shade900,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              20.r),
+                                                      border: Border.all(
+                                                          color: Colors.green,
+                                                          width: 2),
+                                                    ),
+                                                    child: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
                                                       children: [
-                                                        // Progress indicator
-                                                        LinearProgressIndicator(
-                                                          value: value,
-                                                          backgroundColor:
-                                                              Colors.grey
-                                                                  .shade800,
-                                                          valueColor:
-                                                              const AlwaysStoppedAnimation<
-                                                                      Color>(
-                                                                  Colors.green),
+                                                        // Success animation
+                                                        TweenAnimationBuilder<
+                                                            double>(
+                                                          tween: Tween<double>(
+                                                              begin: 0.0,
+                                                              end: 1.0),
+                                                          duration:
+                                                              const Duration(
+                                                                  milliseconds:
+                                                                      800),
+                                                          curve:
+                                                              Curves.elasticOut,
+                                                          builder: (context,
+                                                              value, child) {
+                                                            return Transform
+                                                                .scale(
+                                                              scale: value,
+                                                              child: Container(
+                                                                width: 80.w,
+                                                                height: 80.w,
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Colors
+                                                                      .green
+                                                                      .withOpacity(
+                                                                          0.2),
+                                                                  shape: BoxShape
+                                                                      .circle,
+                                                                ),
+                                                                child: Center(
+                                                                  child: Icon(
+                                                                    Icons
+                                                                        .check_circle,
+                                                                    color: Colors
+                                                                        .green,
+                                                                    size: 60.sp,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            );
+                                                          },
+                                                        ),
+                                                        SizedBox(height: 16.h),
+                                                        Text(
+                                                          "Job Completed!",
+                                                          style: GoogleFonts
+                                                              .poppins(
+                                                            color: Colors.white,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 20.sp,
+                                                          ),
                                                         ),
                                                         SizedBox(height: 8.h),
                                                         Text(
-                                                          "Redirecting to dashboard...",
+                                                          "Thank you for completing this job successfully.",
+                                                          textAlign:
+                                                              TextAlign.center,
                                                           style: GoogleFonts
                                                               .poppins(
                                                             color: Colors
-                                                                .grey.shade400,
-                                                            fontSize: 12.sp,
+                                                                .grey.shade300,
+                                                            fontSize: 14.sp,
                                                           ),
                                                         ),
+                                                        SizedBox(height: 24.h),
+
+                                                        // Auto-redirecting in 2 seconds
+                                                        TweenAnimationBuilder<
+                                                            double>(
+                                                          tween: Tween<double>(
+                                                              begin: 0.0,
+                                                              end: 1.0),
+                                                          duration:
+                                                              const Duration(
+                                                                  seconds: 2),
+                                                          onEnd: () {
+                                                            // Navigate to dashboard after completion
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pushAndRemoveUntil(
+                                                              PageRouteBuilder(
+                                                                pageBuilder: (context,
+                                                                        animation,
+                                                                        secondaryAnimation) =>
+                                                                    const DashboardDriverPage(),
+                                                                transitionsBuilder:
+                                                                    (context,
+                                                                        animation,
+                                                                        secondaryAnimation,
+                                                                        child) {
+                                                                  return FadeTransition(
+                                                                    opacity:
+                                                                        animation,
+                                                                    child:
+                                                                        child,
+                                                                  );
+                                                                },
+                                                                transitionDuration:
+                                                                    const Duration(
+                                                                        milliseconds:
+                                                                            500),
+                                                              ),
+                                                              (route) => false,
+                                                            );
+                                                          },
+                                                          builder: (context,
+                                                              value, child) {
+                                                            return Column(
+                                                              children: [
+                                                                // Progress indicator
+                                                                LinearProgressIndicator(
+                                                                  value: value,
+                                                                  backgroundColor:
+                                                                      Colors
+                                                                          .grey
+                                                                          .shade800,
+                                                                  valueColor: const AlwaysStoppedAnimation<
+                                                                          Color>(
+                                                                      Colors
+                                                                          .green),
+                                                                ),
+                                                                SizedBox(
+                                                                    height:
+                                                                        8.h),
+                                                                Text(
+                                                                  "Redirecting to dashboard...",
+                                                                  style: GoogleFonts
+                                                                      .poppins(
+                                                                    color: Colors
+                                                                        .grey
+                                                                        .shade400,
+                                                                    fontSize:
+                                                                        12.sp,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            );
+                                                          },
+                                                        ),
                                                       ],
-                                                    );
-                                                  },
+                                                    ),
+                                                  ),
                                                 ),
-                                              ],
+                                              ),
+                                            );
+                                          } catch (e) {
+                                            // Handle any errors during job completion
+                                            Navigator.pop(context);
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  "Error completing job: $e",
+                                                  style: TextStyle(
+                                                      color: Colors.white),
+                                                ),
+                                                backgroundColor:
+                                                    Colors.red.shade700,
+                                                duration:
+                                                    const Duration(seconds: 4),
+                                              ),
+                                            );
+                                          } finally {
+                                            if (mounted) {
+                                              setState(() {
+                                                isSubmitting = false;
+                                              });
+                                            }
+                                          }
+                                        } else {
+                                          // Show validation error effect (fields are already marked)
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: const Text(
+                                                "Please fill all required fields marked with *",
+                                                style: TextStyle(
+                                                    color: Colors.white),
+                                              ),
+                                              backgroundColor:
+                                                  Colors.red.shade700,
+                                              duration:
+                                                  const Duration(seconds: 2),
                                             ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  } else {
-                                    // Show validation error effect (fields are already marked)
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: const Text(
-                                          "Please fill all required fields marked with *",
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                        backgroundColor: Colors.red.shade700,
-                                        duration: const Duration(seconds: 2),
-                                      ),
-                                    );
-                                  }
-                                },
+                                          );
+                                        }
+                                      },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
+                                  disabledBackgroundColor: Colors.grey.shade700,
                                   padding: EdgeInsets.symmetric(vertical: 16.h),
                                   elevation: 8,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12.r),
                                   ),
                                 ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle_outline,
-                                      color: Colors.white,
-                                      size: 18.sp,
-                                    ),
-                                    SizedBox(width: 8.w),
-                                    Text(
-                                      "COMPLETE JOB",
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14.sp,
+                                child: isSubmitting
+                                    ? SizedBox(
+                                        width: 20.w,
+                                        height: 20.h,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2.w,
+                                        ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle_outline,
+                                            color: Colors.white,
+                                            size: 18.sp,
+                                          ),
+                                          SizedBox(width: 8.w),
+                                          Text(
+                                            "COMPLETE JOB",
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14.sp,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ],
-                                ),
                               ),
                             ),
                           ],
@@ -1403,6 +1500,79 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  // Add a method to complete the job in Firestore
+  Future<void> _completeJobInFirestore({
+    required double endMileage,
+    required String notes,
+    required double fuelLevel,
+  }) async {
+    try {
+      // Get current job ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final currentJobId = prefs.getString('current_job_id');
+
+      // If no job ID is found, we can't update the record
+      if (currentJobId == null || currentJobId.isEmpty) {
+        debugPrint(
+            'No current job ID found in SharedPreferences, unable to complete job');
+        throw Exception('No active job found');
+      }
+
+      // Calculate trip statistics
+      final startMileage = prefs.getInt('current_mileage') ?? 0;
+      final tripDistance = endMileage - startMileage;
+      final endTime = DateTime.now();
+      final tripDuration = endTime.difference(startTime);
+
+      // Format the duration in minutes for storage
+      final tripDurationMinutes = tripDuration.inMinutes;
+
+      // Create the completion data
+      final completionData = {
+        'endMileage': endMileage,
+        'endTime': Timestamp.fromDate(endTime),
+        'endFuelLevel': fuelLevel, // Store as percentage (0-100)
+        'endFuelStatus': _getFuelStatusText(fuelLevel),
+        'completionNotes': notes,
+        'status': 'completed',
+        'tripDistance':
+            tripDistance > 0 ? tripDistance : 0, // Ensure positive value
+        'tripDurationMinutes': tripDurationMinutes,
+        'completedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      // Update the existing job document
+      await FirebaseFirestore.instance
+          .collection('jobs')
+          .doc(currentJobId)
+          .update(completionData);
+
+      debugPrint('Job completed successfully in Firestore');
+
+      // Clear the current job ID from SharedPreferences
+      await prefs.remove('current_job_id');
+    } catch (e) {
+      debugPrint('Error completing job: $e');
+      rethrow; // Re-throw to handle in the calling method
+    }
+  }
+
+  // Helper method to convert fuel level percentage to text status
+  String _getFuelStatusText(double fuelLevel) {
+    if (fuelLevel >= 75) {
+      return 'Full tank';
+    } else if (fuelLevel >= 50) {
+      return 'Three-quarter tank';
+    } else if (fuelLevel >= 25) {
+      return 'Half tank';
+    } else if (fuelLevel >= 10) {
+      return 'Quarter tank';
+    } else {
+      return 'Refuel needed';
+    }
   }
 
   // Helper widget for trip statistics items
