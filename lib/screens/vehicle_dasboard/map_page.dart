@@ -62,6 +62,14 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       true; // Default to true - assuming driver has an active job
   bool _isJobCompleted = false;
 
+  // Add variables for location tracking
+  Timer? _locationUpdateTimer;
+  bool _isLocationUpdatingEnabled = true;
+  int _locationUpdateFrequency = 30; // seconds
+  double _lastUploadedMileage = 0.0;
+  DateTime? _lastLocationUpdate;
+  int _totalUpdatesCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -73,6 +81,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     _loadUserData();
     _loadNotifications();
     _checkFuelStatus(); // Add fuel status check
+
+    // Start periodic location updates to Firestore
+    _startPeriodicLocationUpdates();
 
     // Initialize notification hint animation controller
     _notificationHintController = AnimationController(
@@ -293,6 +304,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               LatLng(initialPosition.latitude, initialPosition.longitude);
           previousPosition = initialPosition;
         });
+
+        // Immediately update location in Firestore when we first get a location
+        _updateCurrentLocationInFirestore();
       }
 
       positionSubscription = Geolocator.getPositionStream(
@@ -406,6 +420,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   void dispose() {
     durationTimer?.cancel();
     positionSubscription?.cancel();
+    _locationUpdateTimer?.cancel(); // Cancel the location update timer
     _mapController?.dispose();
     _notificationHintController?.dispose();
     super.dispose();
@@ -1529,7 +1544,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       // Format the duration in minutes for storage
       final tripDurationMinutes = tripDuration.inMinutes;
 
-      // Create the completion data
+      // Prepare completion data with final location
       final completionData = {
         'endMileage': endMileage,
         'endTime': Timestamp.fromDate(endTime),
@@ -1540,9 +1555,18 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         'tripDistance':
             tripDistance > 0 ? tripDistance : 0, // Ensure positive value
         'tripDurationMinutes': tripDurationMinutes,
+        'finalLocation': _currentLocation != null
+            ? GeoPoint(_currentLocation!.latitude, _currentLocation!.longitude)
+            : null,
+        'finalLocationTimestamp': Timestamp.fromDate(DateTime.now()),
+        'totalDistanceTracked': totalMileage, // Final tracked distance
         'completedAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
+
+      // Stop location updates when job is completed
+      _isLocationUpdatingEnabled = false;
+      _locationUpdateTimer?.cancel();
 
       // Update the existing job document
       await FirebaseFirestore.instance
@@ -2205,6 +2229,107 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     } catch (e) {
       debugPrint('Error storing fuel record: $e');
       rethrow; // Re-throw to handle in the calling function
+    }
+  }
+
+  // Start periodic location updates to Firestore
+  void _startPeriodicLocationUpdates() {
+    _locationUpdateTimer?.cancel();
+    _locationUpdateTimer = Timer.periodic(
+        Duration(seconds: _locationUpdateFrequency),
+        (_) => _updateCurrentLocationInFirestore());
+
+    debugPrint(
+        'Started periodic location updates every $_locationUpdateFrequency seconds');
+  }
+
+  // Update location frequency - can be called to adjust update rate
+  void _updateLocationFrequency(int seconds) {
+    if (seconds < 5) seconds = 5; // Minimum 5 seconds
+    if (seconds > 300) seconds = 300; // Maximum 5 minutes
+
+    _locationUpdateFrequency = seconds;
+    _startPeriodicLocationUpdates(); // Restart with new frequency
+
+    debugPrint(
+        'Updated location update frequency to $_locationUpdateFrequency seconds');
+  }
+
+  // Update current location in Firestore
+  Future<void> _updateCurrentLocationInFirestore() async {
+    if (!_isLocationUpdatingEnabled || _currentLocation == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentJobId = prefs.getString('current_job_id');
+
+      // Only update if we have an active job
+      if (currentJobId == null || currentJobId.isEmpty) {
+        debugPrint('No current job ID found, skipping location update');
+        return;
+      }
+
+      // Calculate values to update
+      final now = DateTime.now();
+      final elapsedTime = _lastLocationUpdate != null
+          ? now.difference(_lastLocationUpdate!)
+          : const Duration(seconds: 0);
+
+      // Calculate incremental distance since last update
+      double incrementalDistance = 0.0;
+      if (_lastUploadedMileage > 0) {
+        incrementalDistance = totalMileage - _lastUploadedMileage;
+        // Handle potential negative values (GPS jumps, etc.)
+        if (incrementalDistance < 0) incrementalDistance = 0;
+      }
+
+      // Prepare the location data
+      final locationData = {
+        'currentLocation':
+            GeoPoint(_currentLocation!.latitude, _currentLocation!.longitude),
+        'lastLocationUpdate': FieldValue.serverTimestamp(),
+        'totalDistanceTraveled': totalMileage, // Store total mileage in km
+        'incrementalDistance':
+            incrementalDistance, // Additional distance since last update
+        'elapsedSeconds': elapsedTime.inSeconds, // Time since last update
+        'locationUpdatesCount':
+            FieldValue.increment(1), // Count the number of updates
+        'trackingData': FieldValue.arrayUnion([
+          {
+            'timestamp': Timestamp.fromDate(now),
+            'location': GeoPoint(
+                _currentLocation!.latitude, _currentLocation!.longitude),
+            'distance': totalMileage,
+            'timeString': DateFormat('HH:mm:ss').format(now),
+          }
+        ]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      // Add additional data for the first update
+      if (_totalUpdatesCount == 0) {
+        locationData['startTrackingAt'] = Timestamp.fromDate(startTime);
+        locationData['initialLocation'] =
+            GeoPoint(_currentLocation!.latitude, _currentLocation!.longitude);
+      }
+
+      // Update the job document in Firestore
+      await FirebaseFirestore.instance
+          .collection('jobs')
+          .doc(currentJobId)
+          .update(locationData);
+
+      // Update tracking variables
+      _lastLocationUpdate = now;
+      _lastUploadedMileage = totalMileage;
+      _totalUpdatesCount++;
+
+      debugPrint(
+          'Updated location in Firestore: ${_currentLocation!.latitude}, ${_currentLocation!.longitude}');
+      debugPrint(
+          'Total mileage: $totalMileage km, Updates: $_totalUpdatesCount');
+    } catch (e) {
+      debugPrint('Error updating location in Firestore: $e');
     }
   }
 
