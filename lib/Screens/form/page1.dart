@@ -4,6 +4,7 @@ import 'package:driveorbit_app/Screens/form/page2.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Add this import
 
 class PhotoUploadPage extends StatefulWidget {
   const PhotoUploadPage({super.key});
@@ -42,6 +43,9 @@ class _PhotoUploadPageState extends State<PhotoUploadPage>
 
     // Request camera permission on init
     _requestCameraPermission();
+
+    // Initialize with an empty mileage value to ensure it's available
+    _initializeMileage();
   }
 
   @override
@@ -53,6 +57,14 @@ class _PhotoUploadPageState extends State<PhotoUploadPage>
   // Request camera permission proactively
   Future<void> _requestCameraPermission() async {
     await Permission.camera.request();
+  }
+
+  // Initialize mileage with 0 if not set already
+  Future<void> _initializeMileage() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!prefs.containsKey('current_mileage')) {
+      await prefs.setInt('current_mileage', 0);
+    }
   }
 
   // Optimized photo capture with visual feedback

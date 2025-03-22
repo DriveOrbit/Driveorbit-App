@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:driveorbit_app/screens/dashboard/dashboard_driver_page.dart';
 import 'package:driveorbit_app/Screens/form/page1.dart';
@@ -10,6 +11,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
 import 'package:driveorbit_app/models/vehicle_details_entity.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Add this import
 
 class ScanCodePage extends StatefulWidget {
   const ScanCodePage({super.key});
@@ -124,10 +126,10 @@ class _ScanCodePageState extends State<ScanCodePage>
     try {
       debugPrint('==== QR CODE SCAN DEBUG ====');
       debugPrint('Processing QR code: $qrValue');
-      
+
       // Normalize the QR value (handle URL formats if needed)
       String normalizedQrValue = qrValue.trim();
-      
+
       // Show a loading indicator during processing
       showDialog(
         context: context,
@@ -143,65 +145,87 @@ class _ScanCodePageState extends State<ScanCodePage>
           );
         },
       );
-      
+
       // Try to parse the custom format first
-      final Map<String, String> parsedData = _parseVehicleQRCode(normalizedQrValue);
+      final Map<String, String> parsedData =
+          _parseVehicleQRCode(normalizedQrValue);
       debugPrint('Parsed QR data: $parsedData');
-      
+
       // If we have a vehicle ID from parsing, use that directly
       String? vehicleId = parsedData['vehicle'];
-      QuerySnapshot vehicleSnapshot;
-      
-      if (vehicleId != null) {
-        debugPrint('Using parsed vehicle ID: $vehicleId');
-        vehicleSnapshot = await FirebaseFirestore.instance
-            .collection('vehicles')
-            .where('vehicleId', isEqualTo: int.tryParse(vehicleId) ?? vehicleId)
-            .limit(1)
-            .get();
-            
-        if (vehicleSnapshot.docs.isEmpty) {
-          // Try as string if numeric didn't work
-          vehicleSnapshot = await FirebaseFirestore.instance
+      QuerySnapshot? vehicleSnapshot;
+
+      // Try to fetch the vehicle with retry mechanism
+      vehicleSnapshot = await _tryFirestoreOperation(() async {
+        QuerySnapshot snapshot;
+
+        if (vehicleId != null) {
+          debugPrint('Using parsed vehicle ID: $vehicleId');
+          snapshot = await FirebaseFirestore.instance
               .collection('vehicles')
-              .where('vehicleId', isEqualTo: vehicleId)
+              .where('vehicleId',
+                  isEqualTo: int.tryParse(vehicleId) ?? vehicleId)
+              .limit(1)
+              .get();
+
+          if (snapshot.docs.isEmpty) {
+            // Try as string if numeric didn't work
+            snapshot = await FirebaseFirestore.instance
+                .collection('vehicles')
+                .where('vehicleId', isEqualTo: vehicleId)
+                .limit(1)
+                .get();
+          }
+        } else {
+          // First try exact match with qrCodeURL
+          debugPrint('Approach 1: Trying exact match...');
+          snapshot = await FirebaseFirestore.instance
+              .collection('vehicles')
+              .where('qrCodeURL', isEqualTo: normalizedQrValue)
               .limit(1)
               .get();
         }
-      } else {
-        // Try the approaches from before if parsing failed
-        // First try exact match with qrCodeURL
-        debugPrint('Approach 1: Trying exact match...');
-        vehicleSnapshot = await FirebaseFirestore.instance
-            .collection('vehicles')
-            .where('qrCodeURL', isEqualTo: normalizedQrValue)
-            .limit(1)
-            .get();
-        
-        // Try other approaches if needed (existing code)
-        // ...
-      }
-      
+
+        return snapshot;
+      });
+
       // Close loading dialog
       if (mounted && Navigator.canPop(context)) {
         Navigator.of(context).pop();
       }
 
-      if ((vehicleId != null && vehicleSnapshot.docs.isEmpty) || 
+      // Handle case when vehicleSnapshot is still null after retries
+      if (vehicleSnapshot == null) {
+        _showConnectivityErrorDialog(
+            'Failed to connect to the database after multiple attempts.');
+        return;
+      }
+
+      if ((vehicleId != null && vehicleSnapshot.docs.isEmpty) ||
           (vehicleId == null && vehicleSnapshot.docs.isEmpty)) {
         // QR code parsed but vehicle not found - try one more direct approach with the model and number
-        if (parsedData.containsKey('model') && parsedData.containsKey('number')) {
+        if (parsedData.containsKey('model') &&
+            parsedData.containsKey('number')) {
           debugPrint('Trying to match by model and number...');
           final model = parsedData['model'];
           final number = parsedData['number'];
-          
+
           if (model != null && number != null) {
-            vehicleSnapshot = await FirebaseFirestore.instance
-                .collection('vehicles')
-                .where('vehicleModel', isEqualTo: model)
-                .where('vehicleNumber', isEqualTo: number)
-                .limit(1)
-                .get();
+            vehicleSnapshot = await _tryFirestoreOperation(() async {
+              return await FirebaseFirestore.instance
+                  .collection('vehicles')
+                  .where('vehicleModel', isEqualTo: model)
+                  .where('vehicleNumber', isEqualTo: number)
+                  .limit(1)
+                  .get();
+            });
+
+            // Check if we still have a connection error
+            if (vehicleSnapshot == null) {
+              _showConnectivityErrorDialog(
+                  'Failed to connect to the database after multiple attempts.');
+              return;
+            }
           }
         }
       }
@@ -209,17 +233,18 @@ class _ScanCodePageState extends State<ScanCodePage>
       if (vehicleSnapshot.docs.isEmpty) {
         // QR code is not registered - provide more detailed error
         debugPrint('No matching vehicle found for QR code');
-        
+
         // Show the detailed error with parsed data for better debugging
         _showDetailedErrorDialog(normalizedQrValue, parsedData);
         return;
       }
 
       // Get vehicle data
-      final vehicleData = vehicleSnapshot.docs.first.data() as Map<String, dynamic>;
+      final vehicleData =
+          vehicleSnapshot.docs.first.data() as Map<String, dynamic>;
       final docId = vehicleSnapshot.docs.first.id;
       final vehicle = VehicleDetailsEntity.fromMap(vehicleData);
-      
+
       debugPrint('Success! Found vehicle: ${vehicle.vehicleModel} (${docId})');
 
       // Check if current user is logged in
@@ -233,11 +258,20 @@ class _ScanCodePageState extends State<ScanCodePage>
         return;
       }
 
-      // Get user data for the job record
-      final userSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
+      // Get user data for the job record with retry
+      final userSnapshot = await _tryFirestoreOperation(() async {
+        return await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
+      });
+
+      // Handle connection error
+      if (userSnapshot == null) {
+        _showConnectivityErrorDialog(
+            'Failed to fetch user data. Please check your connection.');
+        return;
+      }
 
       final userData = userSnapshot.data() ?? {};
       final userName = userData['name'] ?? 'Unknown Driver';
@@ -252,23 +286,140 @@ class _ScanCodePageState extends State<ScanCodePage>
       if (mounted && Navigator.canPop(context)) {
         Navigator.of(context).pop();
       }
-      
+
       debugPrint('Error processing QR code: $e');
-      _showErrorDialog('Error', 'Failed to process QR code: $e');
+
+      // Handle Firestore connectivity issues
+      if (e.toString().contains('unavailable') ||
+          e.toString().contains('network') ||
+          e.toString().contains('connection')) {
+        _showConnectivityErrorDialog(
+            'Database connection error: ${e.toString()}');
+      } else {
+        _showErrorDialog('Error', 'Failed to process QR code: $e');
+      }
+
       setState(() {
         _isProcessingQR = false;
       });
     }
   }
 
+  // Helper method to retry Firestore operations with exponential backoff
+  Future<T?> _tryFirestoreOperation<T>(Future<T> Function() operation) async {
+    const maxRetries = 3;
+    int retryCount = 0;
+    int retryDelayMs = 500; // Start with 500ms delay
+
+    while (retryCount < maxRetries) {
+      try {
+        return await operation();
+      } catch (e) {
+        retryCount++;
+        debugPrint('Firestore operation failed (attempt $retryCount): $e');
+
+        // Check if it's a permission error - no need to retry
+        if (e.toString().contains('permission-denied') ||
+            e.toString().contains('PERMISSION_DENIED') ||
+            e.toString().contains('insufficient permissions')) {
+          rethrow; // Don't retry for permission errors
+        }
+
+        // Check if we've reached max retries
+        if (retryCount >= maxRetries) {
+          debugPrint('Max retries reached, giving up.');
+          return null;
+        }
+
+        // If the error is not connectivity-related, rethrow it
+        if (!e.toString().contains('unavailable') &&
+            !e.toString().contains('network') &&
+            !e.toString().contains('connection')) {
+          rethrow;
+        }
+
+        // Wait with exponential backoff before retrying
+        await Future.delayed(Duration(milliseconds: retryDelayMs));
+        retryDelayMs *= 2; // Exponential backoff
+      }
+    }
+
+    return null;
+  }
+
+  // Show connectivity error dialog with retry option
+  void _showConnectivityErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.wifi_off, color: Colors.orange.shade700),
+            const SizedBox(width: 8),
+            const Text('Connection Error'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 16),
+            const Text(
+              'Please check your internet connection and try again.',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Reset the scanner to scan again
+              setState(() {
+                _isProcessingQR = false;
+                _isScanning = false;
+                _scanSuccess = false;
+              });
+              _scannerController?.start();
+            },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Try again with the same QR code
+              final currentUser = FirebaseAuth.instance.currentUser;
+              if (currentUser != null) {
+                // Force a debug match to test if connection is working
+                _debugForceVehicleMatch();
+              } else {
+                setState(() {
+                  _isProcessingQR = false;
+                  _isScanning = false;
+                  _scanSuccess = false;
+                });
+                _scannerController?.start();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+            ),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Parse the custom vehicle QR code format
   Map<String, String> _parseVehicleQRCode(String qrContent) {
     Map<String, String> result = {};
-    
+
     try {
       // Handle both data URL and direct content formats
       String content = qrContent;
-      
+
       // If content is a data URL, try to extract the last part
       if (qrContent.contains('data:') || qrContent.contains('://')) {
         final Uri uri = Uri.parse(qrContent);
@@ -276,11 +427,11 @@ class _ScanCodePageState extends State<ScanCodePage>
           content = uri.pathSegments.last;
         }
       }
-      
+
       // Try to find the vehicle:X|number:Y|model:Z format
       if (content.contains('vehicle:') || content.contains('|')) {
         List<String> parts = content.split('|');
-        
+
         for (String part in parts) {
           List<String> keyValue = part.split(':');
           if (keyValue.length == 2) {
@@ -289,18 +440,19 @@ class _ScanCodePageState extends State<ScanCodePage>
             result[key] = value;
           }
         }
-        
+
         debugPrint('Successfully parsed vehicle data format: $result');
       }
     } catch (e) {
       debugPrint('Error parsing QR code: $e');
     }
-    
+
     return result;
   }
 
   // Update the detailed error dialog to show parsed data
-  void _showDetailedErrorDialog(String qrValue, [Map<String, String>? parsedData]) {
+  void _showDetailedErrorDialog(String qrValue,
+      [Map<String, String>? parsedData]) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -367,7 +519,7 @@ class _ScanCodePageState extends State<ScanCodePage>
                         fontSize: 12,
                       ),
                     ),
-                    
+
                     // Add parsed data section if available
                     if (parsedData != null && parsedData.isNotEmpty) ...[
                       const SizedBox(height: 16),
@@ -497,40 +649,133 @@ class _ScanCodePageState extends State<ScanCodePage>
       // Generate a unique job ID
       final jobId = const Uuid().v4();
 
-      // Create the job record
-      await FirebaseFirestore.instance.collection('jobs').doc(jobId).set({
-        'jobId': jobId,
-        'vehicleId': vehicleId,
-        'vehicleName': vehicleName,
-        'driverUid': driverUid,
-        'driverName': driverName,
-        'startTime': FieldValue.serverTimestamp(),
-        'endTime': null,
-        'status': 'started',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      // Show a loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Dialog(
+            backgroundColor: Colors.transparent,
+            child: Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+              ),
+            ),
+          );
+        },
+      );
 
-      // Navigate to the next page
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation1, animation2) =>
-                const PhotoUploadPage(),
-            transitionDuration: const Duration(milliseconds: 500),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: child,
-              );
-            },
-          ),
-        );
+      // Get mileage and fuel status from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final currentMileage = prefs.getInt('current_mileage') ?? 0;
+      final isFuelTankFull = prefs.getBool('fuel_tank_full') ?? true;
+
+      // Store the jobId in SharedPreferences so we can update it later
+      await prefs.setString('current_job_id', jobId);
+
+      // Try to create job record with retry mechanism
+      bool success = false;
+      Exception? lastError;
+      bool isPermissionError = false;
+
+      for (int i = 0; i < 3; i++) {
+        try {
+          // Create the job record with additional mileage and fuel status data
+          await FirebaseFirestore.instance.collection('jobs').doc(jobId).set({
+            'jobId': jobId,
+            'vehicleId': vehicleId,
+            'vehicleName': vehicleName,
+            'driverUid': driverUid,
+            'driverName': driverName,
+            'startTime': FieldValue.serverTimestamp(),
+            'startDate': DateTime.now().toString().split(' ')[0],
+            'endTime': null,
+            'status': 'started',
+            'createdAt': FieldValue.serverTimestamp(),
+            // Initial mileage and fuel values
+            'startMileage': currentMileage,
+            'endMileage': null, // Will be filled when job is completed
+            'fuelStatus': isFuelTankFull ? 'Full tank' : 'Refuel needed',
+            'isFuelTankFull': isFuelTankFull, // Boolean value for filtering
+            'dashboardPhotoUrl': null, // Will be filled in the next step
+          });
+
+          success = true;
+          break;
+        } catch (e) {
+          lastError = e as Exception;
+          debugPrint('Error creating job record (attempt ${i + 1}): $e');
+
+          // Check if it's a permission error - no need to retry
+          if (e.toString().contains('permission-denied') ||
+              e.toString().contains('PERMISSION_DENIED') ||
+              e.toString().contains('insufficient permissions')) {
+            isPermissionError = true;
+            break; // Don't retry for permission errors
+          }
+
+          // If the error is not connectivity-related, don't retry
+          if (!e.toString().contains('unavailable') &&
+              !e.toString().contains('network') &&
+              !e.toString().contains('connection')) {
+            break;
+          }
+
+          // Wait before retrying
+          await Future.delayed(Duration(milliseconds: 500 * (i + 1)));
+        }
+      }
+
+      if (success) {
+        // Navigate to the next page
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation1, animation2) =>
+                  const PhotoUploadPage(),
+              transitionDuration: const Duration(milliseconds: 500),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+            ),
+          );
+        }
+      } else {
+        // Show specific error dialog for permission errors
+        if (isPermissionError) {
+          _showPermissionErrorDialog();
+        } else {
+          // Show general error with retry option
+          _showJobCreationErrorDialog(
+            vehicleId,
+            vehicleName,
+            driverUid,
+            driverName,
+            lastError.toString(),
+          );
+        }
       }
     } catch (e) {
+      // Close loading dialog if open
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
       debugPrint('Error creating job record: $e');
-      _showErrorDialog('Error', 'Failed to create job record: $e');
+
+      // Check for permission error
+      if (e.toString().contains('permission-denied') ||
+          e.toString().contains('PERMISSION_DENIED') ||
+          e.toString().contains('insufficient permissions')) {
+        _showPermissionErrorDialog();
+      } else {
+        _showErrorDialog('Error', 'Failed to create job record: $e');
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -538,6 +783,216 @@ class _ScanCodePageState extends State<ScanCodePage>
         });
       }
     }
+  }
+
+  // Show special dialog for permission errors
+  void _showPermissionErrorDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.security, color: Colors.red.shade700),
+            const SizedBox(width: 8),
+            const Text('Permission Error'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Your account does not have permission to create job records.',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'This is likely due to one of the following reasons:',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildErrorBulletPoint(
+                        'Your account may not have the required role or permissions.'),
+                    _buildErrorBulletPoint(
+                        'Firebase security rules are restricting write access to the jobs collection.'),
+                    _buildErrorBulletPoint(
+                        'The system administrator needs to update your access level.'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.admin_panel_settings,
+                            color: Colors.blue.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'For Administrators',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.blue),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Update Firestore security rules to allow write access to the jobs collection for appropriate user roles.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: const SelectableText(
+                        'match /databases/{database}/documents {\n'
+                        '  match /jobs/{jobId} {\n'
+                        '    allow read: if request.auth != null;\n'
+                        '    allow write: if request.auth != null && (request.auth.uid == request.resource.data.driverUid || hasRole(\'admin\'));\n'
+                        '  }\n'
+                        '}',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Return to the dashboard
+              Navigator.pushReplacement(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation1, animation2) =>
+                      const DashboardDriverPage(),
+                  transitionDuration: const Duration(milliseconds: 300),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    );
+                  },
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+            ),
+            child: const Text('Return to Dashboard'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper for bullet points in error dialog
+  Widget _buildErrorBulletPoint(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(
+            child: Text(text, style: const TextStyle(fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showJobCreationErrorDialog(String vehicleId, String vehicleName,
+      String driverUid, String driverName, String errorMessage) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red.shade700),
+            const SizedBox(width: 8),
+            const Text('Job Creation Failed'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Could not save job details to the database due to a connection issue.',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Error: ${errorMessage.replaceAll(RegExp(r'\[.*?\]'), '')}',
+              style: const TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Please check your internet connection and try again.',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Reset everything
+              setState(() {
+                _isProcessingQR = false;
+                _isScanning = false;
+                _scanSuccess = false;
+              });
+              _scannerController?.start();
+            },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Try again
+              _createJobRecord(vehicleId, vehicleName, driverUid, driverName);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+            ),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showErrorDialog(String title, String message) {
@@ -566,134 +1021,383 @@ class _ScanCodePageState extends State<ScanCodePage>
 
   void _showVehicleConfirmationDialog(VehicleDetailsEntity vehicle,
       String vehicleId, String driverName, String driverUid) {
-    
     bool isDragComplete = false;
+    double dragProgress = 0.0;
     final double dragThreshold = 100; // Distance needed to drag
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) {
+          // Calculate the width of the dialog more safely
+          final double dialogWidth = MediaQuery.of(context).size.width *
+              0.7; // Fixed width for calculations
+          final double endDragPosition =
+              dialogWidth - 60; // End position considering button width
+
           return AlertDialog(
-            title: const Text('Vehicle Confirmation'),
-            content: Column(
+            title: Row(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Is this ${vehicle.vehicleModel}?'),
-                const SizedBox(height: 8),
-                Text('Plate Number: ${vehicle.plateNumber}',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text('Type: ${vehicle.vehicleType}',
-                    style: const TextStyle(color: Colors.grey)),
-                const SizedBox(height: 24),
-                const Text(
-                  'Slide button to start job →',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  height: 60,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    color: Colors.grey.shade200,
-                  ),
-                  child: Stack(
-                    children: [
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeOut,
-                        left: isDragComplete 
-                            ? MediaQuery.of(context).size.width - 200  // End position
-                            : 0,                                      // Start position
-                        top: 0,
-                        bottom: 0,
-                        child: GestureDetector(
-                          onHorizontalDragUpdate: isDragComplete
-                              ? null 
-                              : (details) {
-                                  // Calculate the position of the draggable button
-                                  final RenderBox box = context.findRenderObject() as RenderBox;
-                                  final Offset localOffset = box.globalToLocal(details.globalPosition);
-                                  
-                                  if (localOffset.dx >= dragThreshold) {
-                                    setState(() {
-                                      isDragComplete = true;
-                                    });
-                                    
-                                    // Close dialog and proceed
-                                    Future.delayed(const Duration(milliseconds: 300), () {
-                                      Navigator.pop(context);
-                                      _handleSuccessfulScan();
-                                      _createJobRecord(
-                                          vehicleId, vehicle.vehicleModel, driverUid, driverName);
-                                    });
-                                  }
-                                },
-                          child: Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isDragComplete ? Colors.green : Colors.green.shade600,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 5,
-                                  spreadRadius: 1,
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 300),
-                                child: isDragComplete
-                                    ? const Icon(
-                                        Icons.check,
-                                        color: Colors.white,
-                                        size: 30,
-                                      )
-                                    : const Icon(
-                                        Icons.play_arrow,
-                                        color: Colors.white,
-                                        size: 30,
-                                      ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Visual progress indicator
-                      if (isDragComplete)
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(30),
-                            color: Colors.green.withOpacity(0.3),
-                          ),
-                        ),
-                    ],
+                Icon(Icons.directions_car, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                const Flexible(
+                  child: Text(
+                    'Vehicle Confirmation',
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  // Reset the scanner to scan again
-                  setState(() {
-                    _isProcessingQR = false;
-                    _isScanning = false;
-                    _scanSuccess = false;
-                  });
-                  _scannerController?.start();
-                },
-                child: const Text('Cancel'),
+            // Use a SingleChildScrollView to prevent overflow
+            content: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height *
+                    0.6, // Limit max height
+                maxWidth:
+                    MediaQuery.of(context).size.width * 0.8, // Limit max width
               ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // First row - vehicle model question
+                    Text(
+                      'Is this ${vehicle.vehicleModel}?',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 16),
+                    // Vehicle details container
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Plate number row
+                          Row(
+                            children: [
+                              Icon(Icons.credit_card,
+                                  size: 16, color: Colors.grey.shade700),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Plate Number: ${vehicle.plateNumber}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          // Vehicle type row
+                          Row(
+                            children: [
+                              Icon(Icons.category,
+                                  size: 16, color: Colors.grey.shade700),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Type: ${vehicle.vehicleType}',
+                                  style: TextStyle(color: Colors.grey.shade800),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Animated instruction - use fixed size constraints
+                    SizedBox(
+                      width: double.infinity,
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0, end: 1),
+                        duration: const Duration(milliseconds: 800),
+                        builder: (context, value, child) {
+                          return Transform.translate(
+                            offset: Offset(0, sin(value * 2 * pi) * 3),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.swipe_right_alt,
+                                    color: Colors.blue.shade700, size: 20),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Slide to start job',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Slider container with fixed width
+                    SizedBox(
+                      height: 60,
+                      width: dialogWidth,
+                      child: Stack(
+                        children: [
+                          // Background container
+                          Container(
+                            height: 60,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.grey.shade200,
+                                  Colors.grey.shade300,
+                                  Colors.grey.shade200,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 4,
+                                  spreadRadius: 0,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Track progress indicator
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 100),
+                            width: isDragComplete
+                                ? dialogWidth
+                                : dragProgress * dialogWidth,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              gradient: LinearGradient(
+                                colors: isDragComplete
+                                    ? [
+                                        Colors.green.shade300,
+                                        Colors.green.shade500,
+                                        Colors.green.shade400,
+                                      ]
+                                    : [
+                                        Colors.blue.shade200,
+                                        Colors.blue.shade300,
+                                        Colors.blue.shade200,
+                                      ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                          ),
+
+                          // Draggable button with smooth animation
+                          AnimatedPositioned(
+                            duration: isDragComplete
+                                ? const Duration(milliseconds: 300)
+                                : const Duration(milliseconds: 50),
+                            curve: isDragComplete
+                                ? Curves.easeOutBack
+                                : Curves.linear,
+                            left: isDragComplete
+                                ? endDragPosition
+                                : dragProgress * endDragPosition,
+                            top: 0,
+                            bottom: 0,
+                            child: GestureDetector(
+                              onHorizontalDragUpdate: isDragComplete
+                                  ? null
+                                  : (details) {
+                                      // Update drag progress with fixed width calculation
+                                      final double dragX = details
+                                          .localPosition.dx
+                                          .clamp(0.0, dialogWidth);
+                                      final double newProgress =
+                                          (dragX / dialogWidth).clamp(0.0, 1.0);
+
+                                      setState(() {
+                                        dragProgress = newProgress;
+                                      });
+
+                                      // Check if we've reached the completion threshold
+                                      if (newProgress >= 0.7) {
+                                        // 70% of the way
+                                        setState(() {
+                                          isDragComplete = true;
+                                        });
+
+                                        // Trigger feedback
+                                        HapticFeedback.mediumImpact();
+
+                                        // Success animation and completion
+                                        Future.delayed(
+                                            const Duration(milliseconds: 600),
+                                            () {
+                                          Navigator.pop(context);
+                                          _handleSuccessfulScan();
+                                          _createJobRecord(
+                                              vehicleId,
+                                              vehicle.vehicleModel,
+                                              driverUid,
+                                              driverName);
+                                        });
+                                      }
+                                    },
+                              onHorizontalDragEnd: isDragComplete
+                                  ? null
+                                  : (details) {
+                                      // If not completed, snap back to start
+                                      if (!isDragComplete) {
+                                        setState(() {
+                                          dragProgress = 0.0;
+                                        });
+                                      }
+                                    },
+                              child: Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: isDragComplete
+                                        ? [
+                                            Colors.green.shade400,
+                                            Colors.green.shade600
+                                          ]
+                                        : [
+                                            Colors.blue.shade400,
+                                            Colors.blue.shade600
+                                          ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: (isDragComplete
+                                              ? Colors.green
+                                              : Colors.blue)
+                                          .withOpacity(0.3),
+                                      blurRadius: isDragComplete ? 12 : 8,
+                                      spreadRadius: isDragComplete ? 2 : 0,
+                                    ),
+                                  ],
+                                ),
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  transitionBuilder: (Widget child,
+                                      Animation<double> animation) {
+                                    return ScaleTransition(
+                                      scale: animation,
+                                      child: FadeTransition(
+                                        opacity: animation,
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                  child: isDragComplete
+                                      ? const Icon(
+                                          Icons.check,
+                                          key: ValueKey('check'),
+                                          color: Colors.white,
+                                          size: 30,
+                                        )
+                                      : Icon(
+                                          dragProgress > 0.4
+                                              ? Icons.chevron_right
+                                              : Icons.arrow_forward,
+                                          key: ValueKey(dragProgress > 0.4
+                                              ? 'chevron'
+                                              : 'arrow'),
+                                          color: Colors.white,
+                                          size: 30,
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Show "completed" text when finished
+                          if (isDragComplete)
+                            Center(
+                              child: TweenAnimationBuilder<double>(
+                                tween: Tween<double>(begin: 0.0, end: 1.0),
+                                duration: const Duration(milliseconds: 300),
+                                builder: (context, value, child) {
+                                  return Opacity(
+                                    opacity: value,
+                                    child: const Text(
+                                      'Job Started!',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    // Show confirmation message when close to completion
+                    if (dragProgress > 0.4 && !isDragComplete)
+                      AnimatedOpacity(
+                        opacity: ((dragProgress - 0.4) * 2.5).clamp(0.0, 1.0),
+                        duration: const Duration(milliseconds: 200),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 12.0),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Text(
+                              'Almost there! Keep sliding...',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: Colors.blue.shade700,
+                                  fontSize: 13,
+                                  fontStyle: FontStyle.italic),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              if (!isDragComplete)
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    // Reset the scanner to scan again
+                    setState(() {
+                      _isProcessingQR = false;
+                      _isScanning = false;
+                      _scanSuccess = false;
+                    });
+                    _scannerController?.start();
+                  },
+                  child: const Text('Cancel'),
+                ),
             ],
           );
         },
@@ -728,7 +1432,7 @@ class _ScanCodePageState extends State<ScanCodePage>
           .collection('vehicles')
           .limit(1)
           .get();
-          
+
       if (vehicles.docs.isEmpty) {
         _showErrorDialog('Debug Error', 'No vehicles found in database.');
         setState(() {
@@ -736,11 +1440,11 @@ class _ScanCodePageState extends State<ScanCodePage>
         });
         return;
       }
-      
+
       final vehicleData = vehicles.docs.first.data();
       final vehicleId = vehicles.docs.first.id;
       final vehicle = VehicleDetailsEntity.fromMap(vehicleData);
-      
+
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
         _showErrorDialog(
@@ -758,9 +1462,9 @@ class _ScanCodePageState extends State<ScanCodePage>
 
       final userData = userSnapshot.data() ?? {};
       final userName = userData['name'] ?? 'Unknown Driver';
-      
-      _showVehicleConfirmationDialog(vehicle, vehicleId, userName, currentUser.uid);
-      
+
+      _showVehicleConfirmationDialog(
+          vehicle, vehicleId, userName, currentUser.uid);
     } catch (e) {
       _showErrorDialog('Debug Error', 'Error: $e');
       setState(() {
@@ -1113,7 +1817,7 @@ class _ScanCodePageState extends State<ScanCodePage>
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 40),
                         padding: const EdgeInsets.symmetric(
-                            vertical: 12, horizontal: 24),
+                            vertical: 12, horizontal: 16),
                         decoration: BoxDecoration(
                           color: Colors.green,
                           borderRadius: BorderRadius.circular(30),
@@ -1125,22 +1829,29 @@ class _ScanCodePageState extends State<ScanCodePage>
                             ),
                           ],
                         ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle, color: Colors.white),
-                            SizedBox(width: 8),
-                            Text(
-                              "QR Code Scanned Successfully!",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                        child: LayoutBuilder(builder: (context, constraints) {
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.check_circle,
+                                  color: Colors.white),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  "QR Code Scanned Successfully!",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                  softWrap: true,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          );
+                        }),
                       ),
                     ),
                   );

@@ -14,6 +14,7 @@ import 'dart:async';
 import 'package:driveorbit_app/screens/job/job_assign.dart'; // Import the real job page
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:driveorbit_app/widgets/draggable_notification_circle.dart';
 import 'dart:ui';
@@ -1552,366 +1553,489 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     }
   }
 
-  // Handle fuel filling action with blurred dialog - modified to update fuel status
+  // Handle fuel filling action with blurred dialog - modified to update fuel status and save records
   void _handleFuelFilling() {
     // Show fuel filling form dialog with blur effect
     final amountController = TextEditingController();
     final litersController = TextEditingController();
     final notesController = TextEditingController();
+    bool isSubmitting = false;
+    bool isFormValid = false;
 
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.6),
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[900],
-              borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(
-                color: Colors.amber.withOpacity(0.7),
-                width: 2,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[900],
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(
+                  color: Colors.amber.withOpacity(0.7),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.amber.withOpacity(0.2),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ],
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.amber.withOpacity(0.2),
-                  blurRadius: 10,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(
-                    vertical: 16.h,
-                    horizontal: 16.w,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.amber.shade700,
-                        Colors.amber.shade900,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(
+                      vertical: 16.h,
+                      horizontal: 16.w,
                     ),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(16.r),
-                      topRight: Radius.circular(16.r),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.local_gas_station,
-                        color: Colors.white,
-                        size: 24.sp,
-                      ),
-                      SizedBox(width: 10.w),
-                      Text(
-                        "Fuel Filling Details",
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18.sp,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Form fields
-                Padding(
-                  padding: EdgeInsets.all(24.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Show warning message if refill needed
-                      if (_needsFuelRefill)
-                        Container(
-                          margin: EdgeInsets.only(bottom: 20.h),
-                          padding: EdgeInsets.all(12.w),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8.r),
-                            border: Border.all(
-                              color: Colors.amber.withOpacity(0.5),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: Colors.amber,
-                                size: 20.sp,
-                              ),
-                              SizedBox(width: 10.w),
-                              Expanded(
-                                child: Text(
-                                  "Completing this form will update your fuel status",
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.amber,
-                                    fontSize: 12.sp,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      // Amount field
-                      Text(
-                        "Amount (Rs)",
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14.sp,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      TextField(
-                        controller: amountController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          fillColor: Colors.black.withOpacity(0.2),
-                          filled: true,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: BorderSide(
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: BorderSide(
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: const BorderSide(
-                              color: Colors.amber,
-                            ),
-                          ),
-                          hintText: "Enter amount paid",
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 14.sp,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.attach_money,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16.h),
-
-                      // Liters field
-                      Text(
-                        "Liters",
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14.sp,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      TextField(
-                        controller: litersController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          fillColor: Colors.black.withOpacity(0.2),
-                          filled: true,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: BorderSide(
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: BorderSide(
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: const BorderSide(
-                              color: Colors.amber,
-                            ),
-                          ),
-                          hintText: "Enter liters filled",
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 14.sp,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.water_drop_outlined,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16.h),
-
-                      // Notes field
-                      Text(
-                        "Notes (Optional)",
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14.sp,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      TextField(
-                        controller: notesController,
-                        style: const TextStyle(color: Colors.white),
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          fillColor: Colors.black.withOpacity(0.2),
-                          filled: true,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: BorderSide(
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: BorderSide(
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: const BorderSide(
-                              color: Colors.amber,
-                            ),
-                          ),
-                          hintText: "Any additional notes...",
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 14.sp,
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 24.h),
-
-                      // Action buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.grey),
-                                padding: EdgeInsets.symmetric(vertical: 16.h),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                              ),
-                              child: Text(
-                                "CANCEL",
-                                style: GoogleFonts.poppins(
-                                  color: Colors.grey.shade300,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 16.w),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                // Update the fuel tank status in SharedPreferences
-                                final prefs =
-                                    await SharedPreferences.getInstance();
-                                await prefs.setBool('fuel_tank_full', true);
-
-                                // Update the UI state
-                                if (mounted) {
-                                  setState(() {
-                                    _needsFuelRefill = false;
-                                  });
-                                }
-
-                                // Show success message with specific content about fuel status
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.check_circle,
-                                          color: Colors.white,
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                "Fuel filling recorded!",
-                                                style: GoogleFonts.poppins(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              Text(
-                                                "Your fuel status has been updated",
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 12.sp,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    backgroundColor: Colors.green.shade700,
-                                    duration: const Duration(seconds: 3),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.amber,
-                                padding: EdgeInsets.symmetric(vertical: 16.h),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                              ),
-                              child: Text(
-                                "SUBMIT",
-                                style: GoogleFonts.poppins(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.amber.shade700,
+                          Colors.amber.shade900,
                         ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    ],
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(16.r),
+                        topRight: Radius.circular(16.r),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.local_gas_station,
+                          color: Colors.white,
+                          size: 24.sp,
+                        ),
+                        SizedBox(width: 10.w),
+                        Text(
+                          "Fuel Filling Details",
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18.sp,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+
+                  // Form fields
+                  Padding(
+                    padding: EdgeInsets.all(24.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Show warning message if refill needed
+                        if (_needsFuelRefill)
+                          Container(
+                            margin: EdgeInsets.only(bottom: 20.h),
+                            padding: EdgeInsets.all(12.w),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8.r),
+                              border: Border.all(
+                                color: Colors.amber.withOpacity(0.5),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Colors.amber,
+                                  size: 20.sp,
+                                ),
+                                SizedBox(width: 10.w),
+                                Expanded(
+                                  child: Text(
+                                    "Completing this form will update your fuel status",
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.amber,
+                                      fontSize: 12.sp,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        // Amount field - With validation
+                        Text(
+                          "Amount (Rs) *",
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14.sp,
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+                        TextField(
+                          controller: amountController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(color: Colors.white),
+                          onChanged: (value) {
+                            setState(() {
+                              isFormValid = _validateFuelForm(
+                                  amountController.text, litersController.text);
+                            });
+                          },
+                          decoration: InputDecoration(
+                            fillColor: Colors.black.withOpacity(0.2),
+                            filled: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                              borderSide: const BorderSide(
+                                color: Colors.amber,
+                              ),
+                            ),
+                            hintText: "Enter amount paid",
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 14.sp,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.attach_money,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 16.h),
+
+                        // Liters field - With validation
+                        Text(
+                          "Liters *",
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14.sp,
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+                        TextField(
+                          controller: litersController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(color: Colors.white),
+                          onChanged: (value) {
+                            setState(() {
+                              isFormValid = _validateFuelForm(
+                                  amountController.text, litersController.text);
+                            });
+                          },
+                          decoration: InputDecoration(
+                            fillColor: Colors.black.withOpacity(0.2),
+                            filled: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                              borderSide: const BorderSide(
+                                color: Colors.amber,
+                              ),
+                            ),
+                            hintText: "Enter liters filled",
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 14.sp,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.water_drop_outlined,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 16.h),
+
+                        // Notes field (optional)
+                        Text(
+                          "Notes (Optional)",
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14.sp,
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+                        TextField(
+                          controller: notesController,
+                          style: const TextStyle(color: Colors.white),
+                          maxLines: 2,
+                          decoration: InputDecoration(
+                            fillColor: Colors.black.withOpacity(0.2),
+                            filled: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                              borderSide: const BorderSide(
+                                color: Colors.amber,
+                              ),
+                            ),
+                            hintText: "Any additional notes...",
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 14.sp,
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: 24.h),
+
+                        // Action buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: isSubmitting
+                                    ? null
+                                    : () => Navigator.pop(context),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.grey),
+                                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                ),
+                                child: Text(
+                                  "CANCEL",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey.shade300,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: (!isFormValid || isSubmitting)
+                                    ? null
+                                    : () async {
+                                        setState(() {
+                                          isSubmitting = true;
+                                        });
+
+                                        // Get values from controllers
+                                        final amountText =
+                                            amountController.text.trim();
+                                        final litersText =
+                                            litersController.text.trim();
+                                        final notesText =
+                                            notesController.text.trim();
+
+                                        // Parse values
+                                        double amount =
+                                            double.tryParse(amountText) ?? 0;
+                                        double liters =
+                                            double.tryParse(litersText) ?? 0;
+
+                                        // Create fuel record
+                                        await _storeFuelFillingRecord(
+                                            amount: amount,
+                                            liters: liters,
+                                            notes: notesText);
+
+                                        // Update the fuel tank status in SharedPreferences
+                                        final prefs = await SharedPreferences
+                                            .getInstance();
+                                        await prefs.setBool(
+                                            'fuel_tank_full', true);
+
+                                        // Update the UI state
+                                        if (mounted) {
+                                          this.setState(() {
+                                            _needsFuelRefill = false;
+                                          });
+                                        }
+
+                                        // Show success message
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Row(
+                                              children: [
+                                                Icon(Icons.check_circle,
+                                                    color: Colors.white),
+                                                SizedBox(width: 8.w),
+                                                Expanded(
+                                                  child: Text(
+                                                    'Fuel filling details saved successfully!',
+                                                    style: TextStyle(
+                                                        color: Colors.white),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            backgroundColor:
+                                                Colors.green.shade700,
+                                            duration:
+                                                const Duration(seconds: 3),
+                                          ),
+                                        );
+                                      },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      isFormValid ? Colors.amber : Colors.grey,
+                                  disabledBackgroundColor: Colors.grey.shade700,
+                                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                ),
+                                child: isSubmitting
+                                    ? SizedBox(
+                                        width: 20.w,
+                                        height: 20.h,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.black,
+                                          strokeWidth: 2.w,
+                                        ),
+                                      )
+                                    : Text(
+                                        "SUBMIT",
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  // Validate the fuel filling form
+  bool _validateFuelForm(String amountText, String litersText) {
+    bool isAmountValid = false;
+    bool isLitersValid = false;
+
+    // Validate amount
+    if (amountText.isNotEmpty) {
+      double? amount = double.tryParse(amountText);
+      isAmountValid = amount != null && amount > 0;
+    }
+
+    // Validate liters
+    if (litersText.isNotEmpty) {
+      double? liters = double.tryParse(litersText);
+      isLitersValid = liters != null && liters > 0;
+    }
+
+    return isAmountValid && isLitersValid;
+  }
+
+  // Store fuel filling record in the jobs collection instead of creating a new collection
+  Future<void> _storeFuelFillingRecord({
+    required double amount,
+    required double liters,
+    String notes = "",
+  }) async {
+    try {
+      // Get current user info
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return;
+
+      // Get current job ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final currentJobId = prefs.getString('current_job_id');
+
+      // If no job ID is found, we can't update the record
+      if (currentJobId == null || currentJobId.isEmpty) {
+        debugPrint('No current job ID found in SharedPreferences');
+        return;
+      }
+
+      // Create record data
+      final now = DateTime.now();
+      final fuelData = {
+        'fuelRefills': FieldValue.arrayUnion([
+          {
+            'amount': amount,
+            'liters': liters,
+            'pricePerLiter':
+                liters > 0 ? (amount / liters).toStringAsFixed(2) : '0',
+            'notes': notes,
+            'timestamp': Timestamp.fromDate(now),
+            'date': now.toString().split(' ')[0],
+            'time': DateFormat('hh:mm a').format(now),
+          }
+        ]),
+        'lastFuelRefill': {
+          'amount': amount,
+          'liters': liters,
+          'timestamp': Timestamp.fromDate(now),
+          'notes': notes,
+        },
+        'isFuelTankFull': true,
+        'fuelStatus': 'Full tank',
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      // Update the existing job document
+      await FirebaseFirestore.instance
+          .collection('jobs')
+          .doc(currentJobId)
+          .update(fuelData);
+
+      debugPrint('Fuel record stored successfully in job document');
+    } catch (e) {
+      debugPrint('Error storing fuel record: $e');
+      rethrow; // Re-throw to handle in the calling function
+    }
   }
 
   @override
