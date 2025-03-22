@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driveorbit_app/models/notification_model.dart';
@@ -8,11 +7,11 @@ import 'package:driveorbit_app/screens/dashboard/driver_history_page.dart';
 import 'package:driveorbit_app/screens/profile/driver_profile.dart'; // Add this import
 import 'package:driveorbit_app/screens/qr_scan/qr_scan_page.dart';
 import 'package:driveorbit_app/services/notification_service.dart';
+import 'package:driveorbit_app/services/vehicle_service.dart'; // Import the new service
 import 'package:driveorbit_app/widgets/notification_drawer.dart';
 import 'package:driveorbit_app/widgets/vehicle_details.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,10 +39,17 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
   AnimationController? _animationController;
   Animation<double>? _expandAnimation;
 
+  // Vehicle service instance
+  final VehicleService _vehicleService = VehicleService();
+
+  // Add a stream subscription for real-time updates
+  StreamSubscription<List<VehicleDetailsEntity>>? _vehicleStreamSubscription;
+
   // User data
   String _firstName = ''; // Add this line to define the variable
   String _profilePictureUrl = '';
   bool _isLoading = true;
+  bool _isLoadingVehicles = true; // Add loading state for vehicles
 
   // Notification related variables
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -59,7 +65,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
   void initState() {
     super.initState();
     _loadUserData();
-    _loadVehicleDetails();
+    _loadVehiclesFromFirestore(); // Replace mock data with Firestore call
     _loadNotifications();
     // Set default status to All instead of Available
     _selectedStatusFilter = 'All';
@@ -100,63 +106,61 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
   }
 
   void _showNotificationTutorial() {
-    // Start animating the notification hint
-    _notificationHintController!.repeat(reverse: true);
+    // Implement the tutorial logic here
+    debugPrint('Showing notification tutorial');
+    // Mark the tutorial as shown
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setBool('has_shown_notification_tutorial', true);
+    });
+  }
 
-    // Show tutorial overlay
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.swipe_right, color: Colors.white),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Swipe right from the left edge to view notifications',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          duration: const Duration(seconds: 5),
-          backgroundColor: const Color(0xFF6D6BF8),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-          action: SnackBarAction(
-            label: 'GOT IT',
-            textColor: Colors.white,
-            onPressed: () async {
-              // Stop the hint animation
-              _notificationHintController?.stop();
+  // Replace the mock data loading with Firestore data loading
+  Future<void> _loadVehiclesFromFirestore() async {
+    if (!mounted) return;
 
-              // Mark as shown
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('has_shown_notification_tutorial', true);
-              _hasShownNotificationTutorial = true;
-
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            },
-          ),
-        ),
-      );
+    setState(() {
+      _isLoadingVehicles = true;
     });
 
-    // After 15 seconds, automatically dismiss the tutorial
-    Future.delayed(const Duration(seconds: 15), () async {
-      if (mounted && _notificationHintController?.isAnimating == true) {
-        _notificationHintController?.stop();
+    try {
+      // First try to get an initial snapshot of vehicles
+      final vehicles = await _vehicleService.fetchVehicles();
 
-        // Mark as shown
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('has_shown_notification_tutorial', true);
-        _hasShownNotificationTutorial = true;
+      if (mounted) {
+        setState(() {
+          _messages = vehicles;
+          _applyFilters();
+          _isLoadingVehicles = false;
+        });
       }
-    });
+
+      // Set up real-time updates
+      _vehicleStreamSubscription = _vehicleService.streamVehicles().listen(
+        (updatedVehicles) {
+          if (mounted) {
+            setState(() {
+              _messages = updatedVehicles;
+              _applyFilters();
+            });
+          }
+        },
+        onError: (error) {
+          debugPrint('❌ Error in vehicle stream: $error');
+          _showErrorSnackbar('Error receiving vehicle updates');
+        },
+      );
+    } on FirebaseException catch (e) {
+      _handleFirebaseError(e);
+      setState(() {
+        _isLoadingVehicles = false;
+      });
+    } catch (e) {
+      debugPrint('❌ Error loading vehicles from Firestore: $e');
+      _showErrorSnackbar('Failed to load vehicle data');
+      setState(() {
+        _isLoadingVehicles = false;
+      });
+    }
   }
 
   @override
@@ -165,6 +169,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
     _scrollController.dispose();
     _animationController?.dispose();
     _notificationHintController?.dispose();
+    _vehicleStreamSubscription?.cancel(); // Cancel the stream subscription
     super.dispose();
   }
 
@@ -289,27 +294,6 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
         ),
       );
     });
-  }
-
-  Future<void> _loadVehicleDetails() async {
-    try {
-      final response =
-          await rootBundle.loadString('assets/mock_vehicledetails.json');
-      final List<dynamic> decodedList = jsonDecode(response);
-      final List<VehicleDetailsEntity> vehicleDetails = decodedList
-          .map((item) => VehicleDetailsEntity.fromJson(item))
-          .toList();
-
-      if (mounted) {
-        setState(() {
-          _messages = vehicleDetails;
-          _applyFilters();
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading vehicle details: $e');
-      _showErrorSnackbar('Failed to load vehicle data');
-    }
   }
 
   String getGreeting() {
@@ -924,47 +908,50 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
                       title: _buildSearchBar(),
                     ),
                     SliverToBoxAdapter(
-                      child: _filteredMessages.isEmpty
-                          ? _buildNoVehiclesFoundWidget()
-                          : ShaderMask(
-                              shaderCallback: (Rect rect) {
-                                return LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: const <Color>[
-                                    Colors.transparent,
-                                    Colors.red,
-                                    Colors.red,
-                                    Colors.transparent,
-                                  ],
-                                  stops: [
-                                    0.0,
-                                    0.01,
-                                    (!_isExpanded) ? 0.7 : 0.9,
-                                    1.0
-                                  ],
-                                ).createShader(rect);
-                              },
-                              blendMode: BlendMode.dstIn,
-                              child: AnimatedSize(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                                child: ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemBuilder: (context, index) {
-                                    return VehicleDetails(
-                                        entity: _filteredMessages[index]);
+                      child: _isLoadingVehicles
+                          ? _buildLoadingVehicles()
+                          : _filteredMessages.isEmpty
+                              ? _buildNoVehiclesFoundWidget()
+                              : ShaderMask(
+                                  shaderCallback: (Rect rect) {
+                                    return LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: const <Color>[
+                                        Colors.transparent,
+                                        Colors.red,
+                                        Colors.red,
+                                        Colors.transparent,
+                                      ],
+                                      stops: [
+                                        0.0,
+                                        0.01,
+                                        (!_isExpanded) ? 0.7 : 0.9,
+                                        1.0
+                                      ],
+                                    ).createShader(rect);
                                   },
-                                  itemCount: _isExpanded
-                                      ? _filteredMessages.length
-                                      : _filteredMessages.length >
-                                              _initialVehicleCount
-                                          ? _initialVehicleCount
-                                          : _filteredMessages.length,
+                                  blendMode: BlendMode.dstIn,
+                                  child: AnimatedSize(
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                    child: ListView.builder(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemBuilder: (context, index) {
+                                        return VehicleDetails(
+                                            entity: _filteredMessages[index]);
+                                      },
+                                      itemCount: _isExpanded
+                                          ? _filteredMessages.length
+                                          : _filteredMessages.length >
+                                                  _initialVehicleCount
+                                              ? _initialVehicleCount
+                                              : _filteredMessages.length,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
                     ),
                   ],
                 ),
@@ -1143,6 +1130,32 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
         const SizedBox(width: 12),
         _buildStatusToggleButton(),
       ],
+    );
+  }
+
+  // New widget to show loading state for vehicles
+  Widget _buildLoadingVehicles() {
+    return Container(
+      height: 200.h,
+      margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6D6BF8)),
+            ),
+            SizedBox(height: 20.h),
+            Text(
+              'Loading vehicles...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16.sp,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
