@@ -63,8 +63,8 @@ dependencies:
   permission_handler: ^11.0.0
   flutter_cache_manager: ^3.3.1
   cached_network_image: ^3.3.0  
-  # Update uuid to be compatible with geolocator_android
   uuid: ^4.5.1
+  fl_chart: ^0.40.0
   flutter_plugin_android_lifecycle: ^2.0.16
 
 dev_dependencies:

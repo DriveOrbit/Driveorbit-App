@@ -70,6 +70,11 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
   DateTime? _lastLocationUpdate;
   int _totalUpdatesCount = 0;
 
+  // Add new vehicle data variables
+  String _vehiclePlateNumber = '';
+  String _vehicleModel = '';
+  bool _isLoadingVehicleData = false;
+
   @override
   void initState() {
     super.initState();
@@ -93,6 +98,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
     // Check if we've shown the tutorial before
     _checkNotificationTutorial();
+
+    // Load vehicle data for current job
+    _loadVehicleDataForCurrentJob();
   }
 
   Future<void> _checkNotificationTutorial() async {
@@ -394,7 +402,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       // Ensure we clear the transitioning flag
       if (mounted) {
         setState(() {
-          _isTransitioning = false;
+          _isTransitioning = false; // Fixed: removed extra parenthesis
         });
       }
     }
@@ -2333,6 +2341,99 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     }
   }
 
+  // Add method to load vehicle data for the current job
+  Future<void> _loadVehicleDataForCurrentJob() async {
+    try {
+      setState(() {
+        _isLoadingVehicleData = true;
+      });
+
+      // Get current job ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final currentJobId = prefs.getString('current_job_id');
+
+      if (currentJobId == null || currentJobId.isEmpty) {
+        debugPrint('No current job ID found in SharedPreferences');
+        setState(() {
+          _isLoadingVehicleData = false;
+          _vehiclePlateNumber = 'No Active Job';
+          _vehicleModel = 'Unknown Vehicle';
+        });
+        return;
+      }
+
+      // Fetch the job document to get vehicleId
+      final jobDoc = await FirebaseFirestore.instance
+          .collection('jobs')
+          .doc(currentJobId)
+          .get();
+
+      if (!jobDoc.exists || jobDoc.data() == null) {
+        debugPrint('Job document not found: $currentJobId');
+        setState(() {
+          _isLoadingVehicleData = false;
+          _vehiclePlateNumber = 'Job Not Found';
+          _vehicleModel = 'Unknown Vehicle';
+        });
+        return;
+      }
+
+      final jobData = jobDoc.data()!;
+      final vehicleId = jobData['vehicleId'];
+
+      if (vehicleId == null) {
+        debugPrint('No vehicleId in job document');
+        // Try to use vehicle name from job if available
+        setState(() {
+          _isLoadingVehicleData = false;
+          _vehiclePlateNumber = jobData['plateNumber'] ?? 'Unknown';
+          _vehicleModel = jobData['vehicleName'] ?? 'Unknown Vehicle';
+        });
+        return;
+      }
+
+      // Query the vehicles collection using vehicleId
+      final vehicleQuery = await FirebaseFirestore.instance
+          .collection('vehicles')
+          .where('vehicleId', isEqualTo: int.tryParse(vehicleId) ?? vehicleId)
+          .limit(1)
+          .get();
+
+      if (vehicleQuery.docs.isEmpty) {
+        debugPrint('No vehicle found with ID: $vehicleId');
+        // Use data from job document as fallback
+        setState(() {
+          _isLoadingVehicleData = false;
+          _vehiclePlateNumber = jobData['plateNumber'] ?? 'Unknown';
+          _vehicleModel = jobData['vehicleName'] ?? 'Unknown Vehicle';
+        });
+        return;
+      }
+
+      // Get vehicle data
+      final vehicleData = vehicleQuery.docs.first.data();
+
+      if (mounted) {
+        setState(() {
+          _isLoadingVehicleData = false;
+          _vehiclePlateNumber = vehicleData['plateNumber'] ?? vehicleData['vehicleNumber'] ?? 'Unknown';
+          _vehicleModel = vehicleData['vehicleModel'] ?? 'Unknown Vehicle';
+        });
+      }
+
+      debugPrint('Loaded vehicle data: $_vehicleModel ($_vehiclePlateNumber)');
+    } catch (e) {
+      debugPrint('Error loading vehicle data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingVehicleData = false;
+          _vehiclePlateNumber = 'Error Loading';
+          _vehicleModel = 'Unknown Vehicle';
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     Duration currentDuration = DateTime.now().difference(startTime);
@@ -2841,36 +2942,88 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "KY-5590",
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 20.sp, // Larger font size
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
+              _isLoadingVehicleData
+                ? Container(
+                    width: 120.w,
+                    height: 25.h,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Center(
+                      child: SizedBox(
+                        width: 16.w,
+                        height: 16.h,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                  )
+                : Text(
+                    _vehiclePlateNumber,
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 20.sp, // Larger font size
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
               SizedBox(height: 4.h), // Space between elements
-              Text(
-                "Toyota HIACE",
-                style: GoogleFonts.poppins(
-                  color: Colors.grey[400], // Lighter grey for better contrast
-                  fontSize: 14.sp,
-                ),
-              ),
+              _isLoadingVehicleData
+                ? Container(
+                    width: 80.w,
+                    height: 16.h,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  )
+                : Text(
+                    _vehicleModel,
+                    style: GoogleFonts.poppins(
+                      color: Colors.grey[400], // Lighter grey for better contrast
+                      fontSize: 14.sp,
+                    ),
+                  ),
             ],
           ),
           const Spacer(),
           InkWell(
-            onTap: () {
-              Navigator.of(context)
-                  .push(
+            onTap: () async {
+              // Get current job ID from SharedPreferences to fetch vehicle ID
+              final prefs = await SharedPreferences.getInstance();
+              final currentJobId = prefs.getString('current_job_id');
+              int? vehicleId;
+              
+              if (currentJobId != null && currentJobId.isNotEmpty) {
+                try {
+                  final jobDoc = await FirebaseFirestore.instance
+                    .collection('jobs')
+                    .doc(currentJobId)
+                    .get();
+                    
+                  if (jobDoc.exists && jobDoc.data() != null) {
+                    final jobData = jobDoc.data()!;
+                    final vId = jobData['vehicleId'];
+                    
+                    if (vId != null) {
+                      // Try to convert to int if it's not already
+                      vehicleId = vId is int ? vId : int.tryParse(vId.toString());
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('Error getting vehicle ID: $e');
+                }
+              }
+              
+              Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => const VehicleInfoPage(),
+                  builder: (_) => VehicleInfoPage(vehicleId: vehicleId),
                 ),
-              )
-                  .then((_) {
-                // Optional: refresh data when returning from job assignments page
+              ).then((_) {
+                // Optional: refresh data when returning from vehicle info page
                 if (mounted) {
                   setState(() {
                     // Reset any state if needed after returning
