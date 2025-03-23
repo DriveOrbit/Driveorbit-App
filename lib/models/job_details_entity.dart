@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class JobDetailsEntity {
-  final String historyId; // Matches assignId in Firestore
-  final String dateString; // Store original string date
-  final String arrivedTimeString; // Store original string time
+  final String historyId;
+  final DateTime date;
+  final DateTime arrivedTime;
   final int distance;
   final int duration;
   final String startLocation;
@@ -14,63 +15,19 @@ class JobDetailsEntity {
   final String customerName;
   final String customerContact;
   final String vehicleType;
-  final double estimatedFare;
-  final String notes;
   final String driverId;
   final String vehicleId;
+  final double estimatedFare;
+  final String notes;
   final bool isComplete;
 
-  // Add computed DateTime properties
-  DateTime? _date;
-  DateTime? _arrivedTime;
-
-  // Getters for DateTime properties with lazy conversion
-  DateTime get date {
-    if (_date == null) {
-      try {
-        _date = DateTime.parse(dateString);
-      } catch (e) {
-        _date = DateTime.now(); // Fallback to current date if parsing fails
-      }
-    }
-    return _date!;
-  }
-
-  DateTime get arrivedTime {
-    if (_arrivedTime == null) {
-      try {
-        _arrivedTime = DateTime.parse(arrivedTimeString);
-      } catch (e) {
-        _arrivedTime =
-            DateTime.now(); // Fallback to current time if parsing fails
-      }
-    }
-    return _arrivedTime!;
-  }
-
-  // Add formatted string getters for convenience
-  String get formattedDate {
-    try {
-      final dt = date;
-      return '${dt.day}/${dt.month}/${dt.year}';
-    } catch (e) {
-      return dateString;
-    }
-  }
-
-  String get formattedTime {
-    try {
-      final dt = arrivedTime;
-      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return arrivedTimeString;
-    }
-  }
+  // Add totalDistanceTraveled field from your data
+  final double totalDistanceTraveled;
 
   JobDetailsEntity({
     required this.historyId,
-    required String date,
-    required String arrivedTime,
+    required this.date,
+    required this.arrivedTime,
     required this.distance,
     required this.duration,
     required this.startLocation,
@@ -80,80 +37,160 @@ class JobDetailsEntity {
     required this.customerName,
     required this.customerContact,
     required this.vehicleType,
-    required this.estimatedFare,
-    required this.notes,
     required this.driverId,
     required this.vehicleId,
+    required this.estimatedFare,
+    required this.notes,
     required this.isComplete,
-  })  : dateString = date,
-        arrivedTimeString = arrivedTime;
+    this.totalDistanceTraveled = 0.0,
+  });
 
-  // Used for mock data
-  factory JobDetailsEntity.fromJson(Map<String, dynamic> json) {
-    return JobDetailsEntity(
-      historyId: json['historyId'] ?? '',
-      date: json['date'] ?? '',
-      arrivedTime: json['arrivedTime'] ?? '',
-      distance: json['distance'] is int ? json['distance'] : 0,
-      duration: json['duration'] is int ? json['duration'] : 0,
-      startLocation: json['startLocation'] ?? '',
-      endLocation: json['endLocation'] ?? '',
-      status: json['status'] ?? '',
-      urgency: json['urgency'] ?? '',
-      customerName: json['customerName'] ?? '',
-      customerContact: json['customerContact'] ?? '',
-      vehicleType: json['vehicleType'] ?? '',
-      estimatedFare: json['estimatedFare'] is double
-          ? json['estimatedFare']
-          : (json['estimatedFare'] is int
-              ? json['estimatedFare'].toDouble()
-              : 0.0),
-      notes: json['notes'] ?? '',
-      driverId: json['driverId'] ?? '',
-      vehicleId: json['vehicleId'] ?? '',
-      isComplete: json['isComplete'] ?? false,
-    );
-  }
-
-  // Add a fromFirestore factory method to convert Firestore data
+  // Parse Firestore document into JobDetailsEntity with improved error handling
   factory JobDetailsEntity.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>? ?? {};
+    final Map<String, dynamic> data = doc.data() as Map<String, dynamic>? ?? {};
+
+    // Extract data with fallbacks for missing fields
+    final String jobId = doc.id;
+
+    // Get timestamps with fallbacks
+    DateTime dateTime = DateTime.now();
+
+    if (data['completedAt'] is Timestamp) {
+      dateTime = (data['completedAt'] as Timestamp).toDate();
+    } else if (data['endTime'] is Timestamp) {
+      dateTime = (data['endTime'] as Timestamp).toDate();
+    } else if (data['updatedAt'] is Timestamp) {
+      dateTime = (data['updatedAt'] as Timestamp).toDate();
+    } else if (data['startTime'] is Timestamp) {
+      dateTime = (data['startTime'] as Timestamp).toDate();
+    } else if (data['createdAt'] is Timestamp) {
+      dateTime = (data['createdAt'] as Timestamp).toDate();
+    }
+
+    // Use same timestamp for arrived time if not available
+    DateTime arrivedTime = dateTime;
+    if (data['arrivedAt'] is Timestamp) {
+      arrivedTime = (data['arrivedAt'] as Timestamp).toDate();
+    } else if (data['startTime'] is Timestamp) {
+      arrivedTime = (data['startTime'] as Timestamp).toDate();
+    }
+
+    // Get distance from different possible fields
+    int distance = 0;
+    if (data['tripDistance'] is num) {
+      distance = (data['tripDistance'] as num).toInt();
+    } else if (data['totalDistanceTraveled'] is num) {
+      // Convert from double to int for display
+      distance = (data['totalDistanceTraveled'] as num).toInt();
+    }
+
+    // Store raw double value for total distance traveled
+    double totalDistanceTraveled = 0.0;
+    if (data['totalDistanceTraveled'] is num) {
+      totalDistanceTraveled = (data['totalDistanceTraveled'] as num).toDouble();
+    }
+
+    // Get duration
+    int duration = 0;
+    if (data['tripDurationMinutes'] is num) {
+      duration = (data['tripDurationMinutes'] as num).toInt();
+    } else if (data['elapsedSeconds'] is num) {
+      // Convert seconds to minutes
+      duration = ((data['elapsedSeconds'] as num) / 60).round();
+    }
+
+    // Get locations
+    String startLocation = data['startLocation'] as String? ?? 'Unknown';
+    String endLocation = data['endLocation'] as String? ?? 'Unknown';
+
+    // Get status and determine if complete
+    String status = data['status'] as String? ?? 'unknown';
+    bool isComplete = status.toLowerCase() == 'completed';
+
+    // Get driver ID from appropriate field names
+    String driverId = '';
+    if (data['driverId'] != null) {
+      driverId = data['driverId'].toString();
+    } else if (data['driverUid'] != null) {
+      driverId = data['driverUid'].toString();
+    }
+
+    // Get vehicle ID
+    String vehicleId = '';
+    if (data['vehicleId'] != null) {
+      vehicleId = data['vehicleId'].toString();
+    }
+
+    // Get customer info
+    String customerName = data['customerName'] as String? ?? 'Unknown Customer';
+    String customerContact = data['customerContact'] as String? ?? '';
+
+    // Get vehicle info
+    String vehicleType = data['vehicleType'] as String? ?? '';
+    // Fallback to vehicleName if vehicleType not available
+    if (vehicleType.isEmpty && data['vehicleName'] != null) {
+      vehicleType = data['vehicleName'].toString();
+    }
+
+    // Get urgency
+    String urgency = data['urgency'] as String? ?? 'normal';
+
+    // Get fare
+    double estimatedFare = 0.0;
+    if (data['estimatedFare'] is num) {
+      estimatedFare = (data['estimatedFare'] as num).toDouble();
+    }
+
+    // Get notes
+    String notes = '';
+    if (data['notes'] != null) {
+      notes = data['notes'].toString();
+    } else if (data['completionNotes'] != null) {
+      notes = data['completionNotes'].toString();
+    }
 
     return JobDetailsEntity(
-      historyId:
-          data['assignId'] ?? doc.id, // Use assignId or fallback to document ID
-      date: data['date'] ?? '',
-      arrivedTime: data['arrivedTime'] ?? '',
-      distance: data['distance'] is int
-          ? data['distance']
-          : (data['distance'] is num ? data['distance'].toInt() : 0),
-      duration: data['duration'] is int
-          ? data['duration']
-          : (data['duration'] is num ? data['duration'].toInt() : 0),
-      startLocation: data['startLocation'] ?? '',
-      endLocation: data['endLocation'] ?? '',
-      status: data['status'] ?? '',
-      urgency: data['urgency'] ?? '',
-      customerName: data['customerName'] ?? '',
-      customerContact: data['customerContact'] ?? '',
-      vehicleType: data['vehicleType'] ?? '',
-      estimatedFare: data['estimatedFare'] is double
-          ? data['estimatedFare']
-          : (data['estimatedFare'] is num
-              ? data['estimatedFare'].toDouble()
-              : 0.0),
-      notes: data['notes'] ?? '',
-      driverId: data['driverId'] ?? '',
-      vehicleId: data['vehicleId'] ?? '',
-      isComplete: data['isComplete'] ?? false,
+      historyId: jobId,
+      date: dateTime,
+      arrivedTime: arrivedTime,
+      distance: distance,
+      duration: duration,
+      startLocation: startLocation,
+      endLocation: endLocation,
+      status: status,
+      urgency: urgency,
+      customerName: customerName,
+      customerContact: customerContact,
+      vehicleType: vehicleType,
+      driverId: driverId,
+      vehicleId: vehicleId,
+      estimatedFare: estimatedFare,
+      notes: notes,
+      isComplete: isComplete,
+      totalDistanceTraveled: totalDistanceTraveled,
     );
   }
 
-  // Add helper getters for job status
-  bool get isPending => !isComplete && (status.toLowerCase() != 'completed');
-  bool get isCompleted => isComplete || status.toLowerCase() == 'completed';
+  // Helper methods
+  Color getStatusColor() {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return Colors.green;
+      case 'started':
+      case 'in progress':
+      case 'in_progress':
+        return Colors.blue;
+      case 'cancelled':
+        return Colors.red;
+      case 'assigned':
+        return Colors.orange;
+      case 'pending':
+        return Colors.amber;
+      default:
+        return Colors.grey;
+    }
+  }
 
-  // Add the missing getUrgencyColor method
   Color getUrgencyColor() {
     switch (urgency.toLowerCase()) {
       case 'high':
@@ -163,30 +200,52 @@ class JobDetailsEntity {
       case 'low':
         return Colors.green;
       default:
-        return Colors.blue; // Default color for unknown urgency
-    }
-  }
-
-  // Add the missing getStatusColor method
-  Color getStatusColor() {
-    if (isCompleted) {
-      return Colors.green;
-    }
-
-    switch (status.toLowerCase()) {
-      case 'in-progress':
-      case 'started':
         return Colors.blue;
-      case 'pending':
-        return Colors.orange;
-      case 'canceled':
-        return Colors.red;
-      case 'scheduled':
-        return Colors.purple;
-      case 'delayed':
-        return Colors.amber;
-      default:
-        return Colors.grey; // Default color for unknown status
     }
   }
+
+  // Format time - add getter for formatted time
+  String get formattedTime => DateFormat('hh:mm a').format(arrivedTime);
+
+  // Add getter for date formatting
+  String get formattedDate => DateFormat('MMM dd, yyyy').format(date);
+
+  // Add date string getter for legacy code support
+  String get dateString => DateFormat('MM/dd/yyyy').format(date);
+
+  // Add arrived time string getter similar to dateString
+  String get arrivedTimeString => DateFormat('hh:mm a').format(arrivedTime);
+
+  // Add getter for status display name
+  String get statusDisplayName {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'Completed';
+      case 'started':
+        return 'In Progress';
+      case 'in_progress':
+      case 'in_progress':
+        return 'In Progress';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'assigned':
+        return 'Assigned';
+      case 'pending':
+        return 'Pending';
+      default:
+        return status;
+    }
+  }
+
+  // Get if job is completed (already a property, but this makes API consistent)
+  bool get isCompleted => isComplete;
+
+  // Add new getter for pending status
+  bool get isPending =>
+      status.toLowerCase() == 'pending' || status.toLowerCase() == 'assigned';
+
+  // Add new getter for in-progress status
+  bool get isInProgress =>
+      status.toLowerCase() == 'started' ||
+      status.toLowerCase() == 'in_progress';
 }

@@ -173,8 +173,8 @@ class _JobAssignedPageState extends State<JobAssignedPage> {
           // Create a new job object with completed status
           final updatedJob = JobDetailsEntity(
             historyId: _history[index].historyId,
-            date: _history[index].dateString,
-            arrivedTime: _history[index].arrivedTimeString,
+            date: DateTime.parse(_history[index].dateString),
+            arrivedTime: DateTime.parse(_history[index].arrivedTimeString),
             distance: _history[index].distance,
             duration: _history[index].duration,
             startLocation: _history[index].startLocation,
