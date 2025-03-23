@@ -33,13 +33,18 @@ dependencies:
   swipeable_button: ^0.2.0
 
   google_maps_flutter: ^2.10.0
-  geolocator: ^11.0.0
+  # Update geolocator to latest version that supports embedding v2
+  geolocator: ^10.1.0
+  # Add specific platform implementations
+  geolocator_android: ^4.4.0
+  geolocator_apple: ^2.3.5
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  firebase_core: ^2.8.0
-  firebase_auth: ^4.5.0
-  cloud_firestore: ^4.5.0 # Add Firestore dependency
+  # Make sure these are all up to date
+  firebase_core: ^2.27.1
+  firebase_auth: ^4.17.9
+  cloud_firestore: ^4.15.9 # Add Firestore dependency
   cupertino_icons: ^1.0.8
   screens: ^2.5.0
   google_fonts: ^6.2.1
@@ -58,6 +63,9 @@ dependencies:
   permission_handler: ^11.0.0
   flutter_cache_manager: ^3.3.1
   cached_network_image: ^3.3.0  
+  # Update uuid to be compatible with geolocator_android
+  uuid: ^4.5.1
+  flutter_plugin_android_lifecycle: ^2.0.16
 
 dev_dependencies:
   flutter_test:

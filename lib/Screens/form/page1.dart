@@ -4,7 +4,7 @@ import 'package:driveorbit_app/Screens/form/page2.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Add this import
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PhotoUploadPage extends StatefulWidget {
   const PhotoUploadPage({super.key});
@@ -15,13 +15,19 @@ class PhotoUploadPage extends StatefulWidget {
 
 class _PhotoUploadPageState extends State<PhotoUploadPage>
     with SingleTickerProviderStateMixin {
-  // List to store captured images (can be null if not taken yet)
+  // List to store captured images
   final List<File?> _vehiclePhotos = [null, null, null, null];
   final List<String> _photoLabels = ['Front', 'Back', 'Left', 'Right'];
   final ImagePicker _picker = ImagePicker();
 
   // Track loading state for each photo slot
   final List<bool> _isLoading = [false, false, false, false];
+
+  // Flag to track if image picker is active
+  bool _isImagePickerActive = false;
+
+  // Used to prevent multiple simultaneous captures
+  bool _isCameraInUse = false;
 
   // Animation controller for UI feedback
   late AnimationController _animationController;
@@ -31,7 +37,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage>
   void initState() {
     super.initState();
 
-    // Initialize animation controller for button and feedback animations
+    // Initialize animation controller
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
@@ -44,7 +50,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage>
     // Request camera permission on init
     _requestCameraPermission();
 
-    // Initialize with an empty mileage value to ensure it's available
+    // Initialize mileage
     _initializeMileage();
   }
 
@@ -54,12 +60,12 @@ class _PhotoUploadPageState extends State<PhotoUploadPage>
     super.dispose();
   }
 
-  // Request camera permission proactively
+  // Request camera permission
   Future<void> _requestCameraPermission() async {
     await Permission.camera.request();
   }
 
-  // Initialize mileage with 0 if not set already
+  // Initialize mileage
   Future<void> _initializeMileage() async {
     final prefs = await SharedPreferences.getInstance();
     if (!prefs.containsKey('current_mileage')) {
@@ -67,50 +73,78 @@ class _PhotoUploadPageState extends State<PhotoUploadPage>
     }
   }
 
-  // Optimized photo capture with visual feedback
+  // Take a photo with improved error handling
   Future<void> _takePhoto(int index) async {
-    if (_isLoading[index]) return; // Prevent multiple simultaneous captures
+    // Check multiple condition locks to prevent concurrent operations
+    if (_isLoading[index] || _isImagePickerActive || _isCameraInUse) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Camera is busy, please wait'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading[index] = true;
+      _isImagePickerActive = true;
+      _isCameraInUse = true;
     });
 
     try {
-      // Provide haptic feedback
+      // Haptic feedback for better UX
       HapticFeedback.mediumImpact();
 
-      // Let image_picker handle permission logic
-      final XFile? photo = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85, // Balance between quality and file size
-        maxWidth: 1200, // Limit dimensions for performance
-      );
+      // Delay to prevent rapid taps
+      await Future.delayed(const Duration(milliseconds: 300));
 
+      // Using image picker with proper error handling
+      final XFile? photo = await _picker
+          .pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 1200,
+        preferredCameraDevice: CameraDevice.rear,
+      )
+          .catchError((error) {
+        debugPrint("Error during image picking: $error");
+        throw error; // Re-throw to be caught by the outer catch
+      });
+
+      // Process the image if it was captured
       if (photo != null && mounted) {
-        // Process the image in a non-blocking way
         setState(() {
           _vehiclePhotos[index] = File(photo.path);
-          // Animate success feedback
           _animateSuccess();
         });
       }
     } catch (e) {
-      debugPrint("Error taking photo: $e");
+      debugPrint("Error in _takePhoto: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Error capturing image'),
+            content: Text('Camera error: ${e.toString().split('(')[0]}'),
             backgroundColor: Colors.red[700],
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
     } finally {
+      // Always reset states
       if (mounted) {
         setState(() {
           _isLoading[index] = false;
+        });
+
+        // Use delayed setting of flags to ensure full cleanup
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (mounted) {
+            setState(() {
+              _isImagePickerActive = false;
+              _isCameraInUse = false;
+            });
+          }
         });
       }
     }

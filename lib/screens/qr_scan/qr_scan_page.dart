@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:math';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,6 +29,13 @@ class _ScanCodePageState extends State<ScanCodePage>
   bool _hasCameraError = false;
   String _errorMessage = "Initializing camera...";
   bool _isProcessingQR = false;
+
+  // Add a cache of recently scanned QR codes to prevent multiple processing
+  final Map<String, DateTime> _recentlyScannedCodes = {};
+  // Add a debounce timer
+  Timer? _scanDebounceTimer;
+  // Track the last scanned code
+  String? _lastScannedCode;
 
   MobileScannerController? _scannerController;
   late AnimationController _animationController;
@@ -113,11 +121,41 @@ class _ScanCodePageState extends State<ScanCodePage>
   void dispose() {
     _animationController.dispose();
     _scannerController?.dispose();
+    _scanDebounceTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _processQRCode(String? qrValue) async {
     if (qrValue == null || _isProcessingQR) return;
+
+    // Prevent duplicate scans of the same QR code
+    if (_lastScannedCode == qrValue) {
+      // Check if we've scanned this code recently (within 5 seconds)
+      final lastScanTime = _recentlyScannedCodes[qrValue];
+      if (lastScanTime != null) {
+        final timeSinceLastScan = DateTime.now().difference(lastScanTime);
+        if (timeSinceLastScan.inSeconds < 5) {
+          debugPrint(
+              'Ignoring duplicate QR scan (${timeSinceLastScan.inMilliseconds}ms since last scan)');
+          return;
+        }
+      }
+    }
+
+    // Cancel any existing debounce timer
+    _scanDebounceTimer?.cancel();
+
+    // Update the last scanned code and timestamp
+    _lastScannedCode = qrValue;
+    _recentlyScannedCodes[qrValue] = DateTime.now();
+
+    // Set debounce timer to prevent rapid rescans
+    _scanDebounceTimer = Timer(const Duration(seconds: 5), () {
+      // After 5 seconds, allow rescanning this code
+      if (_lastScannedCode == qrValue) {
+        _lastScannedCode = null;
+      }
+    });
 
     setState(() {
       _isProcessingQR = true;
@@ -1574,11 +1612,14 @@ class _ScanCodePageState extends State<ScanCodePage>
                         !_isProcessingQR &&
                         mounted) {
                       for (final Barcode barcode in barcodes) {
-                        debugPrint('Barcode found! ${barcode.rawValue}');
-                        if (image != null) {
-                          // Process the QR code with Firestore check
-                          _processQRCode(barcode.rawValue);
-                          break; // Process only the first barcode
+                        final String? rawValue = barcode.rawValue;
+                        if (rawValue != null) {
+                          debugPrint('Barcode found! $rawValue');
+                          if (image != null) {
+                            // Process the QR code with debouncing
+                            _processQRCode(rawValue);
+                            break; // Process only the first barcode
+                          }
                         }
                       }
                     }

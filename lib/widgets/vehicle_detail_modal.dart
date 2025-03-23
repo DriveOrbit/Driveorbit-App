@@ -1,14 +1,114 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:driveorbit_app/models/vehicle_details_entity.dart';
+import 'package:driveorbit_app/services/scan_service.dart';
+import 'dart:async';
 
-class VehicleDetailModal extends StatelessWidget {
+class VehicleDetailModal extends StatefulWidget {
   final VehicleDetailsEntity vehicle;
 
   const VehicleDetailModal({
     super.key,
     required this.vehicle,
   });
+
+  @override
+  State<VehicleDetailModal> createState() => _VehicleDetailModalState();
+}
+
+class _VehicleDetailModalState extends State<VehicleDetailModal> {
+  // State variables
+  bool _isProcessing = false;
+  bool _hasProcessed = false;
+  String? _jobId;
+
+  // Service
+  final ScanService _scanService = ScanService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Generate the job ID for reference
+    _jobId = _scanService.generateJobId(widget.vehicle.vehicleId.toString());
+    // Check if job already exists when modal opens
+    _checkExistingJob();
+  }
+
+  // Check if job already exists
+  Future<void> _checkExistingJob() async {
+    try {
+      final exists = await _scanService
+          .checkJobExists(widget.vehicle.vehicleId.toString());
+      if (exists && mounted) {
+        setState(() {
+          _hasProcessed = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking job status: $e');
+    }
+  }
+
+  // Process QR scan
+  Future<void> _processQrScan() async {
+    if (_isProcessing || _hasProcessed) {
+      return;
+    }
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      // Wait a bit to prevent button double-press
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Create the job
+      final result = await _scanService.createJob(widget.vehicle);
+
+      if (mounted) {
+        setState(() {
+          _hasProcessed = true;
+          _isProcessing = false;
+          _jobId = result['jobId'];
+        });
+
+        // Show message based on result
+        final snackColor = result['success'] ? Colors.green : Colors.orange;
+        final message = result['message'];
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message +
+                (result['jobId'] != null ? ' (ID: ${result['jobId']})' : '')),
+            backgroundColor: snackColor,
+          ),
+        );
+
+        // Close modal on success with slight delay for better UX
+        if (result['success']) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              Navigator.of(context).pop();
+            }
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +149,7 @@ class VehicleDetailModal extends StatelessWidget {
                 ),
                 padding: EdgeInsets.all(10.r),
                 child: Image.asset(
-                  vehicle.vehicleImage,
+                  widget.vehicle.vehicleImage,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -65,7 +165,7 @@ class VehicleDetailModal extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            vehicle.vehicleModel,
+                            widget.vehicle.vehicleModel,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 20.sp,
@@ -73,18 +173,67 @@ class VehicleDetailModal extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (vehicle.qrCodeURL.isNotEmpty)
+                        if (widget.vehicle.qrCodeURL.isNotEmpty)
                           Container(
                             width: 40.w,
                             height: 40.h,
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(10),
+                              border: _hasProcessed
+                                  ? Border.all(color: Colors.green, width: 2)
+                                  : null,
                             ),
-                            child: vehicle.qrCodeURL.isNotEmpty
-                                ? Image.network(vehicle.qrCodeURL)
-                                : const Icon(Icons.qr_code,
-                                    color: Colors.black),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // Base content - QR code or status
+                                if (_isProcessing)
+                                  const CircularProgressIndicator(
+                                    strokeWidth: 2.0,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.blue),
+                                  )
+                                else if (_hasProcessed)
+                                  const Icon(Icons.check_circle,
+                                      color: Colors.green)
+                                else
+                                  GestureDetector(
+                                    onTap: _processQrScan,
+                                    child: widget.vehicle.qrCodeURL.isNotEmpty
+                                        ? Image.network(
+                                            widget.vehicle.qrCodeURL,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                              return const Icon(Icons.qr_code,
+                                                  color: Colors.black);
+                                            },
+                                          )
+                                        : const Icon(Icons.qr_code,
+                                            color: Colors.black),
+                                  ),
+
+                                // Add an indicator badge for processed state
+                                if (_hasProcessed)
+                                  Positioned(
+                                    bottom: 2,
+                                    right: 2,
+                                    child: Container(
+                                      width: 12.w,
+                                      height: 12.h,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.green,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 8,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                       ],
                     ),
@@ -100,9 +249,9 @@ class VehicleDetailModal extends StatelessWidget {
                         border: Border.all(color: Colors.grey),
                       ),
                       child: Text(
-                        vehicle.plateNumber.isNotEmpty
-                            ? vehicle.plateNumber
-                            : vehicle.vehicleNumber,
+                        widget.vehicle.plateNumber.isNotEmpty
+                            ? widget.vehicle.plateNumber
+                            : widget.vehicle.vehicleNumber,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16.sp,
@@ -117,15 +266,15 @@ class VehicleDetailModal extends StatelessWidget {
                       padding:
                           EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                       decoration: BoxDecoration(
-                        color: vehicle.vehicleStatus == 'Available'
+                        color: widget.vehicle.vehicleStatus == 'Available'
                             ? Colors.green
-                            : vehicle.vehicleStatus == 'Booked'
+                            : widget.vehicle.vehicleStatus == 'Booked'
                                 ? Colors.orange
                                 : Colors.red,
                         borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
-                        vehicle.vehicleStatus,
+                        widget.vehicle.vehicleStatus,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14.sp,
@@ -161,43 +310,47 @@ class VehicleDetailModal extends StatelessWidget {
             mainAxisSpacing: 10.h,
             crossAxisSpacing: 10.w,
             children: [
-              _buildSpecItem(Icons.local_gas_station, "Fuel Type",
-                  vehicle.fuelType.isNotEmpty ? vehicle.fuelType : "Unknown"),
+              _buildSpecItem(
+                  Icons.local_gas_station,
+                  "Fuel Type",
+                  widget.vehicle.fuelType.isNotEmpty
+                      ? widget.vehicle.fuelType
+                      : "Unknown"),
               _buildSpecItem(
                   Icons.speed,
                   "Consumption",
-                  vehicle.fuelConsumption > 0
-                      ? "${vehicle.fuelConsumption} L/km"
+                  widget.vehicle.fuelConsumption > 0
+                      ? "${widget.vehicle.fuelConsumption} L/km"
                       : "N/A"),
               _buildSpecItem(
                   Icons.settings,
                   "Transmission",
-                  vehicle.gearSystem.isNotEmpty
-                      ? vehicle.gearSystem
+                  widget.vehicle.gearSystem.isNotEmpty
+                      ? widget.vehicle.gearSystem
                       : "Manual"),
               _buildSpecItem(Icons.medical_services, "Emergency Kit",
-                  vehicle.hasEmergencyKit ? "Available" : "N/A"),
+                  widget.vehicle.hasEmergencyKit ? "Available" : "N/A"),
             ],
           ),
 
           SizedBox(height: 20.h),
 
           // Condition and warnings
-          if (vehicle.condition.isNotEmpty)
+          if (widget.vehicle.condition.isNotEmpty)
             _buildInfoSection(
               "Condition",
-              vehicle.condition,
-              color: _getConditionColor(vehicle.condition),
+              widget.vehicle.condition,
+              color: _getConditionColor(widget.vehicle.condition),
             ),
 
-          if (vehicle.warnings.isNotEmpty)
+          if (widget.vehicle.warnings.isNotEmpty)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 12.h),
                 _buildInfoSection(
                   "Warnings",
-                  vehicle.warnings,
+                  widget.vehicle.warnings,
                   color: Colors.amber,
                   icon: Icons.warning_amber_rounded,
                 ),
@@ -230,7 +383,7 @@ class VehicleDetailModal extends StatelessWidget {
               SizedBox(width: 12.w),
 
               // Only show book button if available
-              if (vehicle.vehicleStatus == 'Available')
+              if (widget.vehicle.vehicleStatus == 'Available')
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
