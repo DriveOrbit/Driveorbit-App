@@ -2416,7 +2416,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       if (mounted) {
         setState(() {
           _isLoadingVehicleData = false;
-          _vehiclePlateNumber = vehicleData['plateNumber'] ?? vehicleData['vehicleNumber'] ?? 'Unknown';
+          _vehiclePlateNumber = vehicleData['plateNumber'] ??
+              vehicleData['vehicleNumber'] ??
+              'Unknown';
           _vehicleModel = vehicleData['vehicleModel'] ?? 'Unknown Vehicle';
         });
       }
@@ -2431,6 +2433,58 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
           _vehicleModel = 'Unknown Vehicle';
         });
       }
+    }
+  }
+
+  // Add a method to update driver status in Firestore
+  Future<void> _updateDriverStatusInFirestore(String status) async {
+    try {
+      // Get current user
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User not authenticated. Please login again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Get user document reference
+      final userDocRef =
+          FirebaseFirestore.instance.collection('drivers').doc(currentUser.uid);
+
+      // Update the status field
+      await userDocRef.update({
+        'status': status,
+        'lastStatusUpdate': FieldValue
+            .serverTimestamp(), // Add timestamp for tracking when status was changed
+      });
+
+      debugPrint('✅ Driver status updated in Firestore: $status');
+    } catch (e) {
+      debugPrint('❌ Error updating driver status: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update status: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Helper method to convert status value to display name
+  String _statusToDisplayName(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'Active';
+      case 'break':
+        return 'Taking a break';
+      case 'inactive':
+        return 'Unavailable';
+      default:
+        return status;
     }
   }
 
@@ -2943,50 +2997,51 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _isLoadingVehicleData
-                ? Container(
-                    width: 120.w,
-                    height: 25.h,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Center(
-                      child: SizedBox(
-                        width: 16.w,
-                        height: 16.h,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.grey[600],
+                  ? Container(
+                      width: 120.w,
+                      height: 25.h,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[800],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Center(
+                        child: SizedBox(
+                          width: 16.w,
+                          height: 16.h,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.grey[600],
+                          ),
                         ),
                       ),
+                    )
+                  : Text(
+                      _vehiclePlateNumber,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 20.sp, // Larger font size
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  )
-                : Text(
-                    _vehiclePlateNumber,
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 20.sp, // Larger font size
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
               SizedBox(height: 4.h), // Space between elements
               _isLoadingVehicleData
-                ? Container(
-                    width: 80.w,
-                    height: 16.h,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(4),
+                  ? Container(
+                      width: 80.w,
+                      height: 16.h,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[800],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    )
+                  : Text(
+                      _vehicleModel,
+                      style: GoogleFonts.poppins(
+                        color: Colors
+                            .grey[400], // Lighter grey for better contrast
+                        fontSize: 14.sp,
+                      ),
                     ),
-                  )
-                : Text(
-                    _vehicleModel,
-                    style: GoogleFonts.poppins(
-                      color: Colors.grey[400], // Lighter grey for better contrast
-                      fontSize: 14.sp,
-                    ),
-                  ),
             ],
           ),
           const Spacer(),
@@ -2996,33 +3051,36 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
               final prefs = await SharedPreferences.getInstance();
               final currentJobId = prefs.getString('current_job_id');
               int? vehicleId;
-              
+
               if (currentJobId != null && currentJobId.isNotEmpty) {
                 try {
                   final jobDoc = await FirebaseFirestore.instance
-                    .collection('jobs')
-                    .doc(currentJobId)
-                    .get();
-                    
+                      .collection('jobs')
+                      .doc(currentJobId)
+                      .get();
+
                   if (jobDoc.exists && jobDoc.data() != null) {
                     final jobData = jobDoc.data()!;
                     final vId = jobData['vehicleId'];
-                    
+
                     if (vId != null) {
                       // Try to convert to int if it's not already
-                      vehicleId = vId is int ? vId : int.tryParse(vId.toString());
+                      vehicleId =
+                          vId is int ? vId : int.tryParse(vId.toString());
                     }
                   }
                 } catch (e) {
                   debugPrint('Error getting vehicle ID: $e');
                 }
               }
-              
-              Navigator.of(context).push(
+
+              Navigator.of(context)
+                  .push(
                 MaterialPageRoute(
                   builder: (_) => VehicleInfoPage(vehicleId: vehicleId),
                 ),
-              ).then((_) {
+              )
+                  .then((_) {
                 // Optional: refresh data when returning from vehicle info page
                 if (mounted) {
                   setState(() {

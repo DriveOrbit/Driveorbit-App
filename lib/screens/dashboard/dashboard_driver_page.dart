@@ -600,9 +600,17 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
   void _showStatusSelectionPopup() {
     // Define the status options with their colors
     final statusOptions = [
-      {'status': 'Active', 'color': Colors.green},
-      {'status': 'Taking a break', 'color': Colors.orange},
-      {'status': 'Unavailable', 'color': Colors.red},
+      {'status': 'Active', 'color': Colors.green, 'firestore_value': 'active'},
+      {
+        'status': 'Taking a break',
+        'color': Colors.orange,
+        'firestore_value': 'break'
+      },
+      {
+        'status': 'Unavailable',
+        'color': Colors.red,
+        'firestore_value': 'inactive'
+      },
     ];
 
     // Find initial selected index
@@ -657,11 +665,17 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
                 Navigator.of(context).pop();
                 final newStatus = statusOptions[selectedIndexNotifier.value]
                     ['status'] as String;
+                final firestoreValue =
+                    statusOptions[selectedIndexNotifier.value]
+                        ['firestore_value'] as String;
 
                 // Update the parent state
                 setState(() {
                   _driverStatus = newStatus;
                 });
+
+                // Update driver status in Firestore
+                _updateDriverStatusInFirestore(firestoreValue);
               },
               child: Container(
                 width: 280,
@@ -774,6 +788,48 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
       // Cleanup the notifier when the dialog is closed
       selectedIndexNotifier.dispose();
     });
+  }
+
+  // Add a new method to update driver status in Firestore
+  Future<void> _updateDriverStatusInFirestore(String status) async {
+    try {
+      // Get current user
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        _showErrorSnackbar('User not authenticated. Please login again.');
+        return;
+      }
+
+      // Get user document reference
+      final userDocRef =
+          FirebaseFirestore.instance.collection('drivers').doc(currentUser.uid);
+
+      // Update the status field
+      await userDocRef.update({
+        'status': status,
+        'lastStatusUpdate': FieldValue
+            .serverTimestamp(), // Add timestamp for tracking when status was changed
+      });
+
+      debugPrint('✅ Driver status updated in Firestore: $status');
+    } catch (e) {
+      debugPrint('❌ Error updating driver status: $e');
+      _showErrorSnackbar('Failed to update status: ${e.toString()}');
+    }
+  }
+
+  // Helper method to convert status value to display name
+  String _statusToDisplayName(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'Active';
+      case 'break':
+        return 'Taking a break';
+      case 'inactive':
+        return 'Unavailable';
+      default:
+        return status;
+    }
   }
 
   @override
