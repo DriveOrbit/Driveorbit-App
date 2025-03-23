@@ -18,6 +18,7 @@ class VehicleDetailsEntity {
   final int recommendedDistance;
   final String warnings;
   final String qrCodeURL;
+  final double currentDistance; // Add this field to track current distance
 
   VehicleDetailsEntity({
     required this.vehicleId,
@@ -36,6 +37,7 @@ class VehicleDetailsEntity {
     required this.recommendedDistance,
     required this.warnings,
     required this.qrCodeURL,
+    this.currentDistance = 0.0, // Default to 0
   });
 
   // Improved factory method with better error handling
@@ -64,6 +66,9 @@ class VehicleDetailsEntity {
             : int.tryParse(map['recommendedDistance']?.toString() ?? '0') ?? 0,
         warnings: map['warnings']?.toString() ?? 'None',
         qrCodeURL: map['qrCodeURL']?.toString() ?? '',
+        currentDistance: map['currentDistance'] is double
+            ? map['currentDistance']
+            : double.tryParse(map['currentDistance']?.toString() ?? '0') ?? 0.0,
       );
     } catch (e) {
       debugPrint('Error creating VehicleDetailsEntity from map: $e');
@@ -100,6 +105,10 @@ class VehicleDetailsEntity {
       recommendedDistance: 0,
       warnings: 'None',
       qrCodeURL: '',
+      currentDistance: 0.0,
     );
   }
+
+  // Helper method to check if maintenance is needed
+  bool get isMaintenanceNeeded => currentDistance >= recommendedDistance;
 }

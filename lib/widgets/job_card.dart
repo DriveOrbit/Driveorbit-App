@@ -5,7 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class JobCard extends StatelessWidget {
+class JobCard extends StatefulWidget {
   final JobDetailsEntity history;
   final VoidCallback? onCompletePressed;
 
@@ -16,19 +16,28 @@ class JobCard extends StatelessWidget {
   });
 
   @override
+  State<JobCard> createState() => _JobCardState();
+}
+
+class _JobCardState extends State<JobCard> {
+  bool _isCompletingJob = false;
+  bool _isNavigating = false; // Add flag to prevent multiple navigations
+
+  @override
   Widget build(BuildContext context) {
     // Format the date
     final dateFormatter = DateFormat('MMM dd, yyyy');
-    final String formattedDate = dateFormatter.format(history.date);
+    final String formattedDate = dateFormatter.format(widget.history.date);
 
     // Format the time
     final timeFormatter = DateFormat('hh:mm a');
-    final String formattedTime = timeFormatter.format(history.arrivedTime);
+    final String formattedTime =
+        timeFormatter.format(widget.history.arrivedTime);
 
     // Get status color for card border
-    final bool isCompleted = history.isCompleted;
-    final Color statusColor = history.getStatusColor();
-    final Color urgencyColor = history.getUrgencyColor();
+    final bool isCompleted = widget.history.isCompleted;
+    final Color statusColor = widget.history.getStatusColor();
+    final Color urgencyColor = widget.history.getUrgencyColor();
 
     return Card(
       margin: EdgeInsets.only(bottom: 16.h),
@@ -82,7 +91,7 @@ class JobCard extends StatelessWidget {
                       ),
                       SizedBox(width: 6.w),
                       Text(
-                        history.status.toUpperCase(),
+                        widget.history.status.toUpperCase(),
                         style: GoogleFonts.poppins(
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w600,
@@ -92,7 +101,7 @@ class JobCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (history.urgency.toLowerCase() == 'high')
+                  if (widget.history.urgency.toLowerCase() == 'high')
                     Container(
                       padding:
                           EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
@@ -142,7 +151,7 @@ class JobCard extends StatelessWidget {
                           ),
                           SizedBox(width: 6.w),
                           Text(
-                            formattedDate,
+                            widget.history.formattedDate,
                             style: GoogleFonts.poppins(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.w600,
@@ -159,7 +168,7 @@ class JobCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8.r),
                         ),
                         child: Text(
-                          '#${history.historyId}',
+                          '#${widget.history.historyId}',
                           style: GoogleFonts.poppins(
                             fontSize: 14.sp,
                             color: Colors.grey[400],
@@ -209,7 +218,7 @@ class JobCard extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    history.startLocation,
+                                    widget.history.startLocation,
                                     style: GoogleFonts.poppins(
                                       fontSize: 14.sp,
                                       fontWeight: FontWeight.w500,
@@ -234,7 +243,7 @@ class JobCard extends StatelessWidget {
                               ),
                               SizedBox(width: 8.w),
                               Text(
-                                '${history.distance.toStringAsFixed(1)} km',
+                                '${widget.history.distance.toStringAsFixed(1)} km',
                                 style: GoogleFonts.poppins(
                                   fontSize: 12.sp,
                                   color: Colors.grey[400],
@@ -273,7 +282,7 @@ class JobCard extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    history.endLocation,
+                                    widget.history.endLocation,
                                     style: GoogleFonts.poppins(
                                       fontSize: 14.sp,
                                       fontWeight: FontWeight.w500,
@@ -299,19 +308,19 @@ class JobCard extends StatelessWidget {
                     children: [
                       _buildTripStatNew(
                         icon: Icons.access_time,
-                        label: formattedTime,
+                        label: widget.history.formattedTime,
                         color: Colors.orange,
                       ),
                       _buildTripStatNew(
                         icon: Icons.timer,
-                        label: "${history.duration} min",
+                        label: "${widget.history.duration} min",
                         color: Colors.purple,
                       ),
                       // Removed money/fare stat
                     ],
                   ),
 
-                  if (history.notes.isNotEmpty) ...[
+                  if (widget.history.notes.isNotEmpty) ...[
                     SizedBox(height: 16.h),
                     Container(
                       width: double.infinity,
@@ -348,7 +357,7 @@ class JobCard extends StatelessWidget {
                           ),
                           SizedBox(height: 6.h),
                           Text(
-                            history.notes,
+                            widget.history.notes,
                             style: GoogleFonts.poppins(
                               fontSize: 13.sp,
                               color: Colors.white,
@@ -361,7 +370,7 @@ class JobCard extends StatelessWidget {
 
                   SizedBox(height: 16.h),
 
-                  // Actions row - improved buttons
+                  // Actions row - improved buttons with loading state
                   isCompleted
                       ? Center(
                           child: Container(
@@ -402,12 +411,23 @@ class JobCard extends StatelessWidget {
                           children: [
                             Expanded(
                               child: ElevatedButton.icon(
-                                icon: Icon(
-                                  Icons.check_circle_outline,
-                                  size: 18.sp,
-                                ),
+                                icon: _isCompletingJob
+                                    ? SizedBox(
+                                        width: 18.sp,
+                                        height: 18.sp,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2.0,
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.check_circle_outline,
+                                        size: 18.sp,
+                                      ),
                                 label: Text(
-                                  "Complete",
+                                  _isCompletingJob
+                                      ? "Processing..."
+                                      : "Complete",
                                   style: GoogleFonts.poppins(
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.w600,
@@ -422,18 +442,28 @@ class JobCard extends StatelessWidget {
                                   ),
                                   padding: EdgeInsets.symmetric(vertical: 12.h),
                                 ),
-                                onPressed: onCompletePressed ??
-                                    () {
-                                      // Handle job completion
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content:
-                                              Text("Job marked as completed!"),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
-                                    },
+                                onPressed: _isCompletingJob
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _isCompletingJob = true;
+                                        });
+
+                                        // Call the completion callback
+                                        if (widget.onCompletePressed != null) {
+                                          widget.onCompletePressed!();
+                                        }
+
+                                        // Reset state after a delay
+                                        Future.delayed(
+                                            const Duration(seconds: 2), () {
+                                          if (mounted) {
+                                            setState(() {
+                                              _isCompletingJob = false;
+                                            });
+                                          }
+                                        });
+                                      },
                               ),
                             ),
                             SizedBox(width: 12.w),
@@ -596,9 +626,27 @@ class JobCard extends StatelessWidget {
     );
   }
 
+  // Add a safe navigation method to prevent crashes
+  void _safeNavigate(VoidCallback navigationAction) {
+    if (_isNavigating) return; // Prevent multiple taps
+
+    setState(() {
+      _isNavigating = true;
+    });
+
+    // Add a small delay to ensure state is updated
+    Future.delayed(const Duration(milliseconds: 50), () {
+      navigationAction();
+    });
+  }
+
+  // Show job details dialog with safe navigation
   void showJobDetailsDialog(BuildContext context) {
+    if (_isNavigating) return;
+
     showDialog(
       context: context,
+      barrierDismissible: true, // Allow dismissing by tapping outside
       builder: (context) => Dialog(
         backgroundColor: Colors.grey[900],
         shape: RoundedRectangleBorder(
@@ -651,10 +699,10 @@ class JobCard extends StatelessWidget {
                     padding:
                         EdgeInsets.symmetric(vertical: 6.h, horizontal: 12.w),
                     decoration: BoxDecoration(
-                      color: history.getStatusColor().withOpacity(0.2),
+                      color: widget.history.getStatusColor().withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
-                        color: history.getStatusColor().withOpacity(0.5),
+                        color: widget.history.getStatusColor().withOpacity(0.5),
                       ),
                     ),
                     child: Row(
@@ -664,17 +712,17 @@ class JobCard extends StatelessWidget {
                           width: 8.w,
                           height: 8.w,
                           decoration: BoxDecoration(
-                            color: history.getStatusColor(),
+                            color: widget.history.getStatusColor(),
                             shape: BoxShape.circle,
                           ),
                         ),
                         SizedBox(width: 6.w),
                         Text(
-                          history.status.toUpperCase(),
+                          widget.history.status.toUpperCase(),
                           style: GoogleFonts.poppins(
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w600,
-                            color: history.getStatusColor(),
+                            color: widget.history.getStatusColor(),
                           ),
                         ),
                       ],
@@ -682,23 +730,24 @@ class JobCard extends StatelessWidget {
                   ),
 
                   // Details
-                  _buildDetailRow("ID:", "#${history.historyId}"),
-                  _buildDetailRow(
-                      "Date:", DateFormat('MMM dd, yyyy').format(history.date)),
+                  _buildDetailRow("ID:", "#${widget.history.historyId}"),
+                  _buildDetailRow("Date:",
+                      DateFormat('MMM dd, yyyy').format(widget.history.date)),
                   _buildDetailRow("Time:",
-                      DateFormat('hh:mm a').format(history.arrivedTime)),
-                  _buildDetailRow("Customer:", history.customerName),
-                  _buildDetailRow("Contact:", history.customerContact),
-                  _buildDetailRow("Vehicle Type:", history.vehicleType),
-                  _buildDetailRow("From:", history.startLocation),
-                  _buildDetailRow("To:", history.endLocation),
+                      DateFormat('hh:mm a').format(widget.history.arrivedTime)),
+                  _buildDetailRow("Customer:", widget.history.customerName),
+                  _buildDetailRow("Contact:", widget.history.customerContact),
+                  _buildDetailRow("Vehicle Type:", widget.history.vehicleType),
+                  _buildDetailRow("From:", widget.history.startLocation),
+                  _buildDetailRow("To:", widget.history.endLocation),
+                  _buildDetailRow("Distance:",
+                      "${widget.history.distance.toStringAsFixed(1)} km"),
                   _buildDetailRow(
-                      "Distance:", "${history.distance.toStringAsFixed(1)} km"),
-                  _buildDetailRow("Duration:", "${history.duration} minutes"),
+                      "Duration:", "${widget.history.duration} minutes"),
                   // Removed Estimated Fare detail row
 
                   // Notes section
-                  if (history.notes.isNotEmpty) ...[
+                  if (widget.history.notes.isNotEmpty) ...[
                     SizedBox(height: 16.h),
                     Text(
                       "Notes:",
@@ -717,7 +766,7 @@ class JobCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8.r),
                       ),
                       child: Text(
-                        history.notes,
+                        widget.history.notes,
                         style: GoogleFonts.poppins(
                           color: Colors.white,
                           fontSize: 14.sp,
@@ -731,18 +780,26 @@ class JobCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      if (!history.isCompleted)
+                      if (!widget.history.isCompleted)
                         Flexible(
                           child: SizedBox(
-                            // Fix: Provide a fixed width or use Flexible with fit: FlexFit.loose
                             width: 140.w,
                             child: ElevatedButton.icon(
-                              icon: Icon(
-                                Icons.check_circle_outline,
-                                size: 18.sp,
-                              ),
+                              icon: _isCompletingJob
+                                  ? SizedBox(
+                                      width: 18.sp,
+                                      height: 18.sp,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2.0,
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.check_circle_outline,
+                                      size: 18.sp,
+                                    ),
                               label: Text(
-                                "Complete",
+                                _isCompletingJob ? "Processing..." : "Complete",
                                 style: GoogleFonts.poppins(
                                   fontSize: 14.sp,
                                 ),
@@ -755,18 +812,53 @@ class JobCard extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(8.r),
                                 ),
                               ),
-                              onPressed: () {
-                                Navigator.pop(context);
-                                if (onCompletePressed != null) {
-                                  onCompletePressed!();
-                                }
-                              },
+                              onPressed: _isCompletingJob
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _isCompletingJob = true;
+                                      });
+
+                                      // Use safe navigation when popping dialog
+                                      _safeNavigate(() {
+                                        Navigator.of(context).pop();
+
+                                        if (widget.onCompletePressed != null) {
+                                          widget.onCompletePressed!();
+                                        }
+                                      });
+
+                                      // Reset state after a delay
+                                      Future.delayed(const Duration(seconds: 2),
+                                          () {
+                                        if (mounted) {
+                                          setState(() {
+                                            _isCompletingJob = false;
+                                            _isNavigating = false;
+                                          });
+                                        }
+                                      });
+                                    },
                             ),
                           ),
                         ),
                       SizedBox(width: 8.w),
                       TextButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          // Safe navigation when closing dialog
+                          _safeNavigate(() {
+                            Navigator.of(context).pop();
+                          });
+
+                          // Reset navigation flag after a delay
+                          Future.delayed(const Duration(milliseconds: 300), () {
+                            if (mounted) {
+                              setState(() {
+                                _isNavigating = false;
+                              });
+                            }
+                          });
+                        },
                         child: Text(
                           "Close",
                           style: GoogleFonts.poppins(
@@ -783,7 +875,14 @@ class JobCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ).then((_) {
+      // Reset navigation flag when dialog is closed
+      if (mounted) {
+        setState(() {
+          _isNavigating = false;
+        });
+      }
+    });
   }
 
   Widget _buildDetailRow(String label, String value) {

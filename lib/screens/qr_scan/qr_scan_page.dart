@@ -711,6 +711,9 @@ class _ScanCodePageState extends State<ScanCodePage>
       // Store the jobId in SharedPreferences so we can update it later
       await prefs.setString('current_job_id', jobId);
 
+      // Store the vehicle ID in SharedPreferences for job assignments
+      await prefs.setString('current_vehicle_id', vehicleId);
+
       // Try to create job record with retry mechanism
       bool success = false;
       Exception? lastError;
