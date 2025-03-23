@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driveorbit_app/models/notification_model.dart';
 import 'package:driveorbit_app/models/vehicle_details_entity.dart';
 import 'package:driveorbit_app/screens/dashboard/driver_history_page.dart';
 import 'package:driveorbit_app/screens/profile/driver_profile.dart'; // Add this import
@@ -53,9 +52,9 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
 
   // Notification related variables
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  List<NotificationModel> _notifications = [];
-  bool _hasUnreadNotifications = false;
   final NotificationService _notificationService = NotificationService();
+  bool _hasUnreadNotifications = false;
+  int _unreadNotificationCount = 0;
 
   // Add animation controllers for notification hint
   AnimationController? _notificationHintController;
@@ -89,6 +88,17 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
 
     // Check if we've shown the tutorial before
     _checkNotificationTutorial();
+
+    // Replace the _loadNotifications() call with subscription to notification stream
+    _notificationService.notificationsStream.listen((notifications) {
+      if (mounted) {
+        setState(() {
+          _hasUnreadNotifications =
+              _notificationService.hasUnreadNotifications();
+          _unreadNotificationCount = _notificationService.unreadCount();
+        });
+      }
+    });
   }
 
   Future<void> _checkNotificationTutorial() async {
@@ -170,6 +180,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
     _animationController?.dispose();
     _notificationHintController?.dispose();
     _vehicleStreamSubscription?.cancel(); // Cancel the stream subscription
+    _notificationService.dispose();
     super.dispose();
   }
 
@@ -246,11 +257,17 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
   }
 
   Future<void> _loadNotifications() async {
-    _notifications = await _notificationService.loadSampleNotifications();
-    if (mounted) {
-      setState(() {
-        _hasUnreadNotifications = _notificationService.hasUnreadNotifications();
-      });
+    try {
+      await _notificationService.getNotifications();
+      if (mounted) {
+        setState(() {
+          _hasUnreadNotifications =
+              _notificationService.hasUnreadNotifications();
+          _unreadNotificationCount = _notificationService.unreadCount();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading notifications: $e');
     }
   }
 
@@ -356,11 +373,6 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
         return matchesSearch && matchesType && matchesStatus;
       }).toList();
     });
-  }
-
-  // Get count of unread notifications
-  int get _unreadNotificationCount {
-    return _notifications.where((notification) => !notification.isRead).length;
   }
 
   // UI Components
@@ -845,10 +857,7 @@ class _DashboardDriverPageState extends State<DashboardDriverPage>
       drawerEdgeDragWidth: MediaQuery.of(context).size.width *
           0.5, // 30% of screen width for easier access
       drawer: NotificationDrawer(
-        notifications: _notifications,
-        onMarkAsRead: _markAsRead,
-        onMarkAllAsRead: _markAllAsRead,
-        hasUnreadNotifications: _hasUnreadNotifications,
+        notificationService: _notificationService,
       ),
       // Make drawer easy to open
 

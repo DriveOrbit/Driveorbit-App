@@ -9,13 +9,13 @@ class MaintenanceIndicator extends StatelessWidget {
   final double percentage; // Add percentage property
 
   const MaintenanceIndicator({
-    Key? key,
+    super.key,
     required this.title,
     required this.status,
     required this.date,
     required this.statusColor,
     required this.percentage, // Make percentage required
-  }) : super(key: key);
+  });
 
   // Helper method to determine color based on percentage
   static Color getColorForPercentage(double percentage) {
@@ -69,7 +69,7 @@ class MaintenanceIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: 120, // Increased container width
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

@@ -283,7 +283,7 @@ class _ScanCodePageState extends State<ScanCodePage>
       final docId = vehicleSnapshot.docs.first.id;
       final vehicle = VehicleDetailsEntity.fromMap(vehicleData);
 
-      debugPrint('Success! Found vehicle: ${vehicle.vehicleModel} (${docId})');
+      debugPrint('Success! Found vehicle: ${vehicle.vehicleModel} ($docId)');
 
       // Check if current user is logged in
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -1064,7 +1064,7 @@ class _ScanCodePageState extends State<ScanCodePage>
       String vehicleId, String driverName, String driverUid) {
     bool isDragComplete = false;
     double dragProgress = 0.0;
-    final double dragThreshold = 100; // Distance needed to drag
+    const double dragThreshold = 100; // Distance needed to drag
 
     showDialog(
       context: context,
@@ -1874,17 +1874,17 @@ class _ScanCodePageState extends State<ScanCodePage>
                           ],
                         ),
                         child: LayoutBuilder(builder: (context, constraints) {
-                          return Row(
+                          return const Row(
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.check_circle,
+                              Icon(Icons.check_circle,
                                   color: Colors.white),
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8),
                               Flexible(
                                 child: Text(
                                   "QR Code Scanned Successfully!",
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,

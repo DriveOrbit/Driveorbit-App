@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:driveorbit_app/screens/auth/login_page.dart'; // Add this import
 
 class DriverProfilePage extends StatefulWidget {
-  const DriverProfilePage({Key? key}) : super(key: key);
+  const DriverProfilePage({super.key});
 
   @override
   State<DriverProfilePage> createState() => _DriverProfilePageState();
@@ -61,7 +61,7 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -230,7 +230,7 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
 class ResponsiveLayout extends StatelessWidget {
   final Widget child;
 
-  const ResponsiveLayout({Key? key, required this.child}) : super(key: key);
+  const ResponsiveLayout({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -253,11 +253,11 @@ class ProfileHeader extends StatelessWidget {
   final String? profilePictureUrl;
 
   const ProfileHeader({
-    Key? key,
+    super.key,
     required this.firstName,
     required this.lastName,
     this.profilePictureUrl,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -309,11 +309,11 @@ class AnimatedInfoCard extends StatelessWidget {
   final Widget child;
 
   const AnimatedInfoCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.icon,
     required this.child,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -370,13 +370,13 @@ class InfoRow extends StatelessWidget {
   final Widget? trailing;
 
   const InfoRow({
-    Key? key,
+    super.key,
     required this.icon,
     required this.label,
     required this.value,
     this.valueColor,
     this.trailing,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -425,10 +425,10 @@ class StatusBadge extends StatelessWidget {
   final Color color;
 
   const StatusBadge({
-    Key? key,
+    super.key,
     required this.status,
     required this.color,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -452,7 +452,7 @@ class StatusBadge extends StatelessWidget {
 }
 
 class LogoutButton extends StatelessWidget {
-  const LogoutButton({Key? key}) : super(key: key);
+  const LogoutButton({super.key});
 
   @override
   Widget build(BuildContext context) {

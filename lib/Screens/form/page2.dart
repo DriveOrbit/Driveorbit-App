@@ -143,7 +143,6 @@ class _MileageFormState extends State<MileageForm>
           'startMileage': mileage,
           'fuelStatus': fuelStatusText,
           'isFuelTankFull': isFuelTankFull,
-          if (dashboardPhotoUrl != null) 'dashboardPhotoUrl': dashboardPhotoUrl,
           'updatedAt': FieldValue.serverTimestamp(),
         });
         debugPrint(

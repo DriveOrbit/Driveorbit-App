@@ -339,7 +339,7 @@ class _JobAssignedPageState extends State<JobAssignedPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.error_outline,
                           size: 70,
                           color: Colors.red,
@@ -347,7 +347,7 @@ class _JobAssignedPageState extends State<JobAssignedPage> {
                         const SizedBox(height: 16),
                         Text(
                           _errorMessage,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                           ),

@@ -415,7 +415,7 @@ class _JobCardState extends State<JobCard> {
                                     ? SizedBox(
                                         width: 18.sp,
                                         height: 18.sp,
-                                        child: CircularProgressIndicator(
+                                        child: const CircularProgressIndicator(
                                           color: Colors.white,
                                           strokeWidth: 2.0,
                                         ),
@@ -789,7 +789,7 @@ class _JobCardState extends State<JobCard> {
                                   ? SizedBox(
                                       width: 18.sp,
                                       height: 18.sp,
-                                      child: CircularProgressIndicator(
+                                      child: const CircularProgressIndicator(
                                         color: Colors.white,
                                         strokeWidth: 2.0,
                                       ),

@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class VehicleInfoPage extends StatefulWidget {
   final int? vehicleId;
 
-  const VehicleInfoPage({Key? key, this.vehicleId}) : super(key: key);
+  const VehicleInfoPage({super.key, this.vehicleId});
 
   @override
   State<VehicleInfoPage> createState() => _VehicleInfoPageState();
@@ -21,7 +21,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
   String _firstName = '';
   String _profilePictureUrl = '';
   bool _isLoading = true;
-  bool _hasUnreadNotifications = false;
+  final bool _hasUnreadNotifications = false;
 
   final VehicleService _vehicleService = VehicleService();
   VehicleDetailsEntity? _vehicleDetails;
@@ -229,7 +229,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
           size: 18,
           color: Colors.grey[400],
         ),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -242,7 +242,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
             ),
             Text(
               value,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -260,7 +260,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
     required bool available,
   }) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black26,
         borderRadius: BorderRadius.circular(8),
@@ -277,17 +277,17 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
             size: 20,
             color: available ? Colors.green : Colors.red,
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 14,
             ),
           ),
-          Spacer(),
+          const Spacer(),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: available
                   ? Colors.green.withOpacity(0.1)
@@ -583,7 +583,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(color: const Color(0xFF6D6BF8)),
+                    const CircularProgressIndicator(color: Color(0xFF6D6BF8)),
                     SizedBox(height: 20.h),
                     Text(
                       "Loading vehicle information...",
@@ -617,7 +617,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF6D6BF8),
                           ),
-                          child: Text("Retry"),
+                          child: const Text("Retry"),
                         )
                       ],
                     ),
@@ -646,7 +646,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                                     .startsWith('http')
                                                 ? NetworkImage(_vehicleDetails!
                                                     .vehicleImage)
-                                                : AssetImage('assets/KDH.png'))
+                                                : const AssetImage('assets/KDH.png'))
                                             as ImageProvider,
                                     fit: BoxFit.cover,
                                   ),
@@ -667,7 +667,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                         Colors.black.withOpacity(0.8),
                                       ],
                                     ),
-                                    borderRadius: BorderRadius.only(
+                                    borderRadius: const BorderRadius.only(
                                       bottomLeft: Radius.circular(16),
                                       bottomRight: Radius.circular(16),
                                     ),
@@ -678,7 +678,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                 bottom: 10,
                                 right: 10,
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(
+                                  padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: _vehicleDetails?.vehicleStatus
@@ -707,11 +707,11 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                                   : Icons.cancel),
                                           color: Colors.white,
                                           size: 16),
-                                      SizedBox(width: 4),
+                                      const SizedBox(width: 4),
                                       Text(
                                         _vehicleDetails?.vehicleStatus ??
                                             'Unknown',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 12,
@@ -750,9 +750,9 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                 // Vehicle Model
                                 Container(
                                   width: double.infinity,
-                                  padding: EdgeInsets.symmetric(
+                                  padding: const EdgeInsets.symmetric(
                                       vertical: 12, horizontal: 20),
-                                  decoration: BoxDecoration(
+                                  decoration: const BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: [Colors.black87, Colors.black54],
                                       begin: Alignment.topCenter,
@@ -767,7 +767,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                     children: [
                                       Text(
                                         _vehicleDetails?.vehicleType
-                                                ?.toUpperCase() ??
+                                                .toUpperCase() ??
                                             'VEHICLE',
                                         style: TextStyle(
                                           fontSize: 12.sp,
@@ -776,7 +776,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                           letterSpacing: 4,
                                         ),
                                       ),
-                                      SizedBox(height: 4),
+                                      const SizedBox(height: 4),
                                       Text(
                                         _vehicleDetails?.vehicleModel ??
                                             'UNKNOWN MODEL',
@@ -792,8 +792,8 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                 ),
                                 // License Plate Number
                                 Container(
-                                  margin: EdgeInsets.all(16),
-                                  padding: EdgeInsets.symmetric(
+                                  margin: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.symmetric(
                                       vertical: 16, horizontal: 24),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
@@ -814,7 +814,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Container(
-                                        padding: EdgeInsets.symmetric(
+                                        padding: const EdgeInsets.symmetric(
                                             horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
                                           color: Colors.blue.shade900,
@@ -823,7 +823,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                         ),
                                         child: Text(
                                           _vehicleDetails?.plateNumber
-                                                  ?.substring(0, 2) ??
+                                                  .substring(0, 2) ??
                                               'SL',
                                           style: TextStyle(
                                             fontSize: 14.sp,
@@ -832,10 +832,10 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                           ),
                                         ),
                                       ),
-                                      SizedBox(width: 16),
+                                      const SizedBox(width: 16),
                                       Text(
                                         _vehicleDetails?.plateNumber
-                                                ?.substring(2) ??
+                                                .substring(2) ??
                                             'XXXXXX',
                                         style: TextStyle(
                                           fontSize: 28.sp,
@@ -845,9 +845,9 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                           fontFamily: 'RobotoMono',
                                         ),
                                       ),
-                                      SizedBox(width: 16),
+                                      const SizedBox(width: 16),
                                       Container(
-                                        padding: EdgeInsets.all(8),
+                                        padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           color: Colors.green.withOpacity(0.1),
                                           borderRadius:
@@ -857,7 +857,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                             width: 1,
                                           ),
                                         ),
-                                        child: Icon(
+                                        child: const Icon(
                                           Icons.verified,
                                           size: 20,
                                           color: Colors.green,
@@ -869,12 +869,12 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                               ],
                             ),
                           ),
-                          SizedBox(height: 24),
+                          const SizedBox(height: 24),
                           
                           // New section for fuel consumption and recommended distance
                           Container(
-                            margin: EdgeInsets.only(bottom: 16),
-                            padding: EdgeInsets.all(20),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
@@ -907,19 +907,19 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                 Row(
                                   children: [
                                     Container(
-                                      padding: EdgeInsets.all(8),
+                                      padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
                                         color: Colors.cyan.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Icon(
+                                      child: const Icon(
                                         Icons.speed,
                                         color: Colors.cyan,
                                         size: 24,
                                       ),
                                     ),
-                                    SizedBox(width: 12),
-                                    Text(
+                                    const SizedBox(width: 12),
+                                    const Text(
                                       'Vehicle Performance',
                                       style: TextStyle(
                                         fontSize: 18,
@@ -929,17 +929,17 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 20),
+                                const SizedBox(height: 20),
                                 
                                 // Fuel Consumption
                                 Row(
                                   children: [
-                                    Icon(
+                                    const Icon(
                                       Icons.local_gas_station,
                                       color: Colors.amber,
                                       size: 20,
                                     ),
-                                    SizedBox(width: 10),
+                                    const SizedBox(width: 10),
                                     Text(
                                       'Fuel Consumption:',
                                       style: TextStyle(
@@ -947,10 +947,10 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                         fontSize: 14,
                                       ),
                                     ),
-                                    SizedBox(width: 8),
+                                    const SizedBox(width: 8),
                                     Text(
                                       '${_vehicleDetails?.fuelConsumption ?? "N/A"} KM/L',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
@@ -959,7 +959,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                   ],
                                 ),
                                 
-                                SizedBox(height: 16),
+                                const SizedBox(height: 16),
                                 
                                 // Recommended Distance with Progress Bar
                                 Text(
@@ -969,10 +969,10 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                     fontSize: 14,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
                                   '${_vehicleDetails?.recommendedDistance ?? 0} KM',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
@@ -987,8 +987,8 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
 
                           // Vehicle Information Card - Using real data
                           Container(
-                            margin: EdgeInsets.only(bottom: 16),
-                            padding: EdgeInsets.all(20),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
@@ -1017,16 +1017,16 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                 Row(
                                   children: [
                                     Container(
-                                      padding: EdgeInsets.all(8),
+                                      padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
                                         color: Colors.blue.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Icon(Icons.directions_car,
+                                      child: const Icon(Icons.directions_car,
                                           color: Colors.blue, size: 24),
                                     ),
-                                    SizedBox(width: 12),
-                                    Text(
+                                    const SizedBox(width: 12),
+                                    const Text(
                                       'Vehicle Information',
                                       style: TextStyle(
                                         fontSize: 18,
@@ -1036,7 +1036,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 20),
+                                const SizedBox(height: 20),
                                 Row(
                                   children: [
                                     Expanded(
@@ -1049,7 +1049,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                                 _vehicleDetails?.vehicleType ??
                                                     'Unknown',
                                           ),
-                                          SizedBox(height: 16),
+                                          const SizedBox(height: 16),
                                           _buildInfoItem(
                                             icon: Icons.local_gas_station,
                                             label: 'Fuel Type',
@@ -1069,7 +1069,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                                 _vehicleDetails?.gearSystem ??
                                                     'Unknown',
                                           ),
-                                          SizedBox(height: 16),
+                                          const SizedBox(height: 16),
                                           _buildInfoItem(
                                             icon: Icons.speed,
                                             label: 'Condition',
@@ -1087,7 +1087,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
 
                           // Available Tools Card - Simplified
                           Container(
-                            padding: EdgeInsets.all(20),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
@@ -1116,16 +1116,16 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                 Row(
                                   children: [
                                     Container(
-                                      padding: EdgeInsets.all(8),
+                                      padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
                                         color: Colors.orange.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Icon(Icons.handyman,
+                                      child: const Icon(Icons.handyman,
                                           color: Colors.orange, size: 24),
                                     ),
-                                    SizedBox(width: 12),
-                                    Text(
+                                    const SizedBox(width: 12),
+                                    const Text(
                                       'Available Tools',
                                       style: TextStyle(
                                         fontSize: 18,
@@ -1135,21 +1135,21 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 20),
+                                const SizedBox(height: 20),
                                 _buildToolItem(
                                   icon: Icons.tire_repair,
                                   title: 'Spare Tyre & Toolkit',
                                   available:
                                       _vehicleDetails?.hasSpareTools ?? false,
                                 ),
-                                SizedBox(height: 12),
+                                const SizedBox(height: 12),
                                 _buildToolItem(
                                   icon: Icons.medical_services,
                                   title: 'Emergency Kit',
                                   available:
                                       _vehicleDetails?.hasEmergencyKit ?? false,
                                 ),
-                                SizedBox(height: 12),
+                                const SizedBox(height: 12),
                                 _buildToolItem(
                                   icon: Icons.warning,
                                   title: 'Warning Triangle',
@@ -1162,13 +1162,13 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                           // Back button - replaced with a simple button
                           Container(
                             alignment: Alignment.center,
-                            padding: EdgeInsets.symmetric(vertical: 20),
+                            padding: const EdgeInsets.symmetric(vertical: 20),
                             child: ElevatedButton.icon(
-                              icon: Icon(Icons.arrow_back),
-                              label: Text('Return to Dashboard'),
+                              icon: const Icon(Icons.arrow_back),
+                              label: const Text('Return to Dashboard'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6D6BF8),
-                                padding: EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                     horizontal: 20, vertical: 12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),

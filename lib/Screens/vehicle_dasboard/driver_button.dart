@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PanicButtonPage extends StatefulWidget {
-  const PanicButtonPage({Key? key}) : super(key: key);
+  const PanicButtonPage({super.key});
 
   @override
   State<PanicButtonPage> createState() => _PanicButtonPageState();
@@ -260,7 +260,7 @@ class _PanicButtonPageState extends State<PanicButtonPage>
                   Container(
                     width: 80.w,
                     height: 80.w,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.red,
                     ),
@@ -306,7 +306,7 @@ class _PanicButtonPageState extends State<PanicButtonPage>
         Container(
           width: 100.w,
           height: 100.w,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.green,
           ),

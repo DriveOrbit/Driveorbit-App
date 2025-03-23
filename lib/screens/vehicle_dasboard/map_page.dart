@@ -46,9 +46,9 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
   // Notification related variables
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  List<NotificationModel> _notifications = [];
-  bool _hasUnreadNotifications = false;
   final NotificationService _notificationService = NotificationService();
+  bool _hasUnreadNotifications = false;
+  int _unreadNotificationCount = 0;
 
   // Add animation controllers for notification hint
   AnimationController? _notificationHintController;
@@ -84,7 +84,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     });
     _getCurrentLocation();
     _loadUserData();
-    _loadNotifications();
     _checkFuelStatus(); // Add fuel status check
 
     // Start periodic location updates to Firestore
@@ -101,6 +100,17 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
 
     // Load vehicle data for current job
     _loadVehicleDataForCurrentJob();
+
+    // Replace the _loadNotifications() call with subscription to notification stream
+    _notificationService.notificationsStream.listen((notifications) {
+      if (mounted) {
+        setState(() {
+          _hasUnreadNotifications =
+              _notificationService.hasUnreadNotifications();
+          _unreadNotificationCount = _notificationService.unreadCount();
+        });
+      }
+    });
   }
 
   Future<void> _checkNotificationTutorial() async {
@@ -231,33 +241,6 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
       if (mounted) {
         setState(() => _isLoading = false);
       }
-    }
-  }
-
-  Future<void> _loadNotifications() async {
-    _notifications = await _notificationService.loadSampleNotifications();
-    if (mounted) {
-      setState(() {
-        _hasUnreadNotifications = _notificationService.hasUnreadNotifications();
-      });
-    }
-  }
-
-  void _markAsRead(String id) {
-    _notificationService.markAsRead(id);
-    if (mounted) {
-      setState(() {
-        _hasUnreadNotifications = _notificationService.hasUnreadNotifications();
-      });
-    }
-  }
-
-  void _markAllAsRead() {
-    _notificationService.markAllAsRead();
-    if (mounted) {
-      setState(() {
-        _hasUnreadNotifications = false;
-      });
     }
   }
 
@@ -431,12 +414,24 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
     _locationUpdateTimer?.cancel(); // Cancel the location update timer
     _mapController?.dispose();
     _notificationHintController?.dispose();
+    _notificationService.dispose();
     super.dispose();
   }
 
-  // Get count of unread notifications
-  int get _unreadNotificationCount {
-    return _notifications.where((notification) => !notification.isRead).length;
+  // Replace/Update the _loadNotifications() method if it exists
+  Future<void> _loadNotifications() async {
+    try {
+      await _notificationService.getNotifications();
+      if (mounted) {
+        setState(() {
+          _hasUnreadNotifications =
+              _notificationService.hasUnreadNotifications();
+          _unreadNotificationCount = _notificationService.unreadCount();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading notifications: $e');
+    }
   }
 
   // Show driver options modal with multiple actions and blurred background
@@ -1437,7 +1432,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                                               SnackBar(
                                                 content: Text(
                                                   "Error completing job: $e",
-                                                  style: TextStyle(
+                                                  style: const TextStyle(
                                                       color: Colors.white),
                                                 ),
                                                 backgroundColor:
@@ -2100,10 +2095,10 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
                                           SnackBar(
                                             content: Row(
                                               children: [
-                                                Icon(Icons.check_circle,
+                                                const Icon(Icons.check_circle,
                                                     color: Colors.white),
                                                 SizedBox(width: 8.w),
-                                                Expanded(
+                                                const Expanded(
                                                   child: Text(
                                                     'Fuel filling details saved successfully!',
                                                     style: TextStyle(
@@ -2502,10 +2497,7 @@ class _MapPageState extends State<MapPage> with TickerProviderStateMixin {
         drawerEnableOpenDragGesture: !_isMapFullScreen,
         drawerEdgeDragWidth: MediaQuery.of(context).size.width * 0.5,
         drawer: NotificationDrawer(
-          notifications: _notifications,
-          onMarkAsRead: _markAsRead,
-          onMarkAllAsRead: _markAllAsRead,
-          hasUnreadNotifications: _hasUnreadNotifications,
+          notificationService: _notificationService,
         ),
         appBar: _isMapFullScreen
             ? null
