@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:math' as math;
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({Key? key}) : super(key: key);
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -13,21 +13,22 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  // Animation controllers
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
   late Animation<double> _scaleAnimation;
-  late Animation<double> _rotationAnimation;
-  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
+    _setupAnimations();
+    _checkAuthStatus();
+  }
 
-    // Setup animations
+  void _setupAnimations() {
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2500),
+      duration: const Duration(milliseconds: 2000),
     );
 
     _fadeAnimation = CurvedAnimation(
@@ -35,65 +36,36 @@ class _SplashScreenState extends State<SplashScreen>
       curve: Curves.easeIn,
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutBack,
+    ));
+
+    _scaleAnimation = Tween<double>(begin: 0.9, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
-        curve: const Interval(0.0, 0.8, curve: Curves.easeOutBack),
+        curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
       ),
     );
 
-    _rotationAnimation = Tween<double>(begin: 0, end: 0.05).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.0, 0.5, curve: Curves.elasticOut),
-      ),
-    );
-
-    // Add pulse animation for the logo glow effect
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.5, 1.0, curve: Curves.easeInOut),
-      ),
-    );
-
-    // Start animations
     _animationController.forward();
-
-    // Make it repeat for continuous animation effect
-    _animationController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _animationController.repeat(reverse: true);
-
-        // Check auth after initial animation completes
-        _checkAuthStatus();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
   }
 
   Future<void> _checkAuthStatus() async {
-    // Add a slight delay to ensure animations complete
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future.delayed(const Duration(seconds: 3));
 
     if (!mounted) return;
 
     try {
-      // Get current Firebase user
       final currentUser = FirebaseAuth.instance.currentUser;
 
       if (currentUser != null) {
         debugPrint('✅ User already logged in: ${currentUser.email}');
-
-        // Make sure we have user data cached
         await _ensureUserDataIsCached(currentUser);
 
-        // Navigate to driver dashboard
         if (mounted) {
           Navigator.of(context).pushReplacementNamed('/driver-dashboard');
         }
@@ -105,7 +77,6 @@ class _SplashScreenState extends State<SplashScreen>
       }
     } catch (e) {
       debugPrint('❌ Error checking auth status: $e');
-      // Fallback to login on error
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/login');
       }
@@ -115,15 +86,12 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _ensureUserDataIsCached(User user) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
-      // Check if basic user data exists in cache
       final cachedFirstName = prefs.getString('user_firstName');
 
       if (cachedFirstName == null || cachedFirstName.isEmpty) {
         debugPrint(
             '⚠️ User data not found in cache, fetching from Firestore...');
 
-        // Fetch data from Firestore if not cached
         final userDoc = await FirebaseFirestore.instance
             .collection('drivers')
             .doc(user.uid)
@@ -131,27 +99,7 @@ class _SplashScreenState extends State<SplashScreen>
 
         if (userDoc.exists && userDoc.data() != null) {
           final userData = userDoc.data()!;
-
-          // Store user data in cache
-          await prefs.setString('user_id', user.uid);
-          await prefs.setString('user_email', user.email ?? '');
-          await prefs.setString(
-              'user_firstName', userData['firstName']?.toString() ?? '');
-          await prefs.setString(
-              'user_lastName', userData['lastName']?.toString() ?? '');
-
-          final profilePic = userData['profilePicture']?.toString() ?? '';
-          if (profilePic.isNotEmpty) {
-            await prefs.setString('user_profilePicture', profilePic);
-          } else {
-            // Generate avatar as fallback
-            final name = userData['firstName']?.toString() ??
-                (user.email?.split('@')[0] ?? '');
-            await prefs.setString('user_profilePicture',
-                'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=random');
-          }
-
-          debugPrint('✅ User data cached successfully');
+          await _cacheUserData(prefs, user, userData);
         } else {
           debugPrint('⚠️ No user document found in Firestore');
         }
@@ -163,136 +111,97 @@ class _SplashScreenState extends State<SplashScreen>
     }
   }
 
+
+  Future<void> _cacheUserData(
+      SharedPreferences prefs, User user, Map<String, dynamic> userData) async {
+    await prefs.setString('user_id', user.uid);
+    await prefs.setString('user_email', user.email ?? '');
+    await prefs.setString(
+        'user_firstName', userData['firstName']?.toString() ?? '');
+    await prefs.setString(
+        'user_lastName', userData['lastName']?.toString() ?? '');
+
+    final profilePic = userData['profilePicture']?.toString() ?? '';
+    if (profilePic.isNotEmpty) {
+      await prefs.setString('user_profilePicture', profilePic);
+    } else {
+      final name = userData['firstName']?.toString() ??
+          (user.email?.split('@')[0] ?? '');
+      await prefs.setString('user_profilePicture',
+          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=random');
+    }
+
+    debugPrint('✅ User data cached successfully');
+  }
+
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions to better match the image
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Center(
-        child: AnimatedBuilder(
-          animation: _animationController,
-          builder: (context, child) {
-            return FadeTransition(
-              opacity: _fadeAnimation,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo with rotation, scale, and pulse animations
-                  Transform.rotate(
-                    angle: math.sin(_rotationAnimation.value) * math.pi / 10,
-                    child: Transform.scale(
-                      scale: _scaleAnimation.value,
-                      child: Container(
-                        width: 160,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF6D6BF8)
-                                  .withOpacity(0.3 * _pulseAnimation.value),
-                              blurRadius: 20 * _pulseAnimation.value,
-                              spreadRadius: 5 * _pulseAnimation.value,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: AnimatedBuilder(
+                  animation: _animationController,
+                  builder: (context, child) {
+                    return FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Transform.scale(
+                        scale: _scaleAnimation.value,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Logo sized to match the image better
+                            Image.asset(
+                              'assets/logo/Driveorbit_text.png',
+                              width: screenHeight * 0.40,
+                              fit: BoxFit.contain,
+                            ),
+                            const SizedBox(height: 60),
+                            // Loading animation
+                            LoadingAnimationWidget.dotsTriangle(
+                              color: const Color(0xFF54C1D5),
+                              size: 60,
                             ),
                           ],
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(
-                              80), // Half of width/height for circle
-                          child: Image.asset(
-                            'assets/logo/Driveorbitlogo.png',
-                            width: 150,
-                            height: 150,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const CircleAvatar(
-                              radius: 75,
-                              backgroundColor: Colors.black,
-                              child: Icon(
-                                Icons.directions_car,
-                                size: 100,
-                                color: Color(0xFF6D6BF8),
-                              ),
-                            ),
-                          ),
-                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  // Enhanced progress indicator with rotation
-                  SizedBox(
-                    width: 60,
-                    height: 60,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Rotating outer circle
-                        Transform.rotate(
-                          angle: _animationController.value * 2 * math.pi,
-                          child: const CircularProgressIndicator(
-                            color: Color(0xFF6D6BF8),
-                            strokeWidth: 4,
-                            value: null,
-                          ),
-                        ),
-                        // Pulsating inner circle
-                        Container(
-                          width: 20 * _pulseAnimation.value,
-                          height: 20 * _pulseAnimation.value,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFF54C1D5).withOpacity(0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  // App name with slide-up animation
-                  Transform.translate(
-                    offset: Offset(0, 20 * (1 - _fadeAnimation.value)),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'DriveOrbit',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Drive Smarter, Not Harder',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 16,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Loading text with fading animation
-                  Opacity(
-                    opacity:
-                        math.sin(_animationController.value * math.pi).abs(),
-                    child: const Text(
-                      'Loading...',
-                      style: TextStyle(
-                        color: Color(0xFF54C1D5),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
+                    );
+                  },
+                ),
               ),
-            );
-          },
+            ),
+            SlideTransition(
+              position: _slideAnimation,
+              child: const Padding(
+                padding: EdgeInsets.only(bottom: 15),
+                child: Text(
+                  'Your Fleet, Your Edge',
+                  style: TextStyle(
+                    color: Color.fromARGB(148, 255, 255, 255),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
