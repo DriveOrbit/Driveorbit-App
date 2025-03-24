@@ -1,0 +1,2 @@
+E:/DriveOrbit/Driveorbit-App/android/app/.cxx/Debug/5vnq2z48/x86/CMakeFiles/edit_cache.dir
+E:/DriveOrbit/Driveorbit-App/android/app/.cxx/Debug/5vnq2z48/x86/CMakeFiles/rebuild_cache.dir

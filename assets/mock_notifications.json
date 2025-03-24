@@ -1,0 +1,82 @@
+[
+    {
+        "id": "1",
+        "title": "New Assignment",
+        "message": "You have been assigned a new vehicle for tomorrow. Please check your schedule.",
+        "timestamp": "2023-08-15T10:30:00.000Z",
+        "isRead": false,
+        "type": "info"
+    },
+    {
+        "id": "2",
+        "title": "Maintenance Alert",
+        "message": "Vehicle KL-01-AB-1234 is scheduled for maintenance next week. Please complete all pending trips.",
+        "timestamp": "2023-08-14T16:45:00.000Z",
+        "isRead": false,
+        "type": "alert"
+    },
+    {
+        "id": "3",
+        "title": "Trip Completed",
+        "message": "Your trip to Chennai has been completed successfully. Customer feedback: 5/5 stars.",
+        "timestamp": "2023-08-13T14:20:00.000Z",
+        "isRead": true,
+        "type": "success"
+    },
+    {
+        "id": "4",
+        "title": "Payment Received",
+        "message": "You have received payment for your last week's trips. Total amount: ₹12,500.",
+        "timestamp": "2023-08-12T09:15:00.000Z",
+        "isRead": true,
+        "type": "success"
+    },
+    {
+        "id": "5",
+        "title": "System Update",
+        "message": "DriveOrbit app will be updated tonight with new features. The app will be unavailable from 2 AM to 3 AM.",
+        "timestamp": "2023-08-11T18:30:00.000Z",
+        "isRead": true,
+        "type": "info"
+    },
+    {
+        "id": "6",
+        "title": "Fuel Refill Required",
+        "message": "Your vehicle is running low on fuel. Please refill at the nearest station.",
+        "timestamp": "2023-08-15T08:10:00.000Z",
+        "isRead": false,
+        "type": "alert"
+    },
+    {
+        "id": "7",
+        "title": "Route Optimization",
+        "message": "We've optimized your route for today's deliveries to save 15% fuel. Check the updated route.",
+        "timestamp": "2023-08-14T07:45:00.000Z",
+        "isRead": false,
+        "type": "info"
+    },
+    {
+        "id": "8",
+        "title": "Customer Feedback",
+        "message": "You've received a 4.8/5 rating from your last 10 customers. Great job!",
+        "timestamp": "2023-08-10T15:20:00.000Z",
+        "isRead": true,
+        "type": "success"
+    },
+    {
+        "id": "9",
+        "title": "Urgent Job Assignment",
+        "message": "You have been assigned to an urgent delivery to Colombo. Please start within 30 minutes.",
+        "timestamp": "2023-08-16T08:15:00.000Z",
+        "isRead": false,
+        "type": "alert"
+    },
+    {
+        "id": "10",
+        "title": "New Route Assignment",
+        "message": "Your daily route has been updated with 3 new locations. Review before starting your shift.",
+        "timestamp": "2023-08-16T07:30:00.000Z",
+        "isRead": false,
+        "type": "info"
+    }
+]
