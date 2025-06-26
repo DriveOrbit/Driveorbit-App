@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driveorbit_app/models/vehicle_details_entity.dart';
-import 'package:driveorbit_app/screens/dashboard/driver_history_page.dart';
-import 'package:driveorbit_app/screens/profile/driver_profile.dart'; // Add this import
-import 'package:driveorbit_app/screens/qr_scan/qr_scan_page.dart';
+import 'package:driveorbit_app/Screens/dashboard/driver_history_page.dart';
+import 'package:driveorbit_app/Screens/profile/driver_profile.dart';
+import 'package:driveorbit_app/Screens/qr_scan/qr_scan_page.dart';
 import 'package:driveorbit_app/services/notification_service.dart';
-import 'package:driveorbit_app/services/vehicle_service.dart'; // Import the new service
+import 'package:driveorbit_app/services/vehicle_service.dart';
 import 'package:driveorbit_app/widgets/notification_drawer.dart';
 import 'package:driveorbit_app/widgets/vehicle_details.dart';
 import 'package:firebase_auth/firebase_auth.dart';

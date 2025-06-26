@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:driveorbit_app/screens/auth/login_page.dart'; // Add this import
+import 'package:driveorbit_app/Screens/auth/login_page.dart'; // Add this import
 
 class DriverProfilePage extends StatefulWidget {
   const DriverProfilePage({super.key});

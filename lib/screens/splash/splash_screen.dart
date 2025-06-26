@@ -111,7 +111,6 @@ class _SplashScreenState extends State<SplashScreen>
     }
   }
 
-
   Future<void> _cacheUserData(
       SharedPreferences prefs, User user, Map<String, dynamic> userData) async {
     await prefs.setString('user_id', user.uid);
@@ -133,7 +132,6 @@ class _SplashScreenState extends State<SplashScreen>
 
     debugPrint('✅ User data cached successfully');
   }
-
 
   @override
   void dispose() {
@@ -204,4 +202,3 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 }
-

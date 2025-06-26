@@ -8,7 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:driveorbit_app/screens/vehicle_dasboard/map_page.dart'; // Import the map page
+import 'package:driveorbit_app/Screens/vehicle_dasboard/map_page.dart'; // Import the map page
 
 class JobAssignedPage extends StatefulWidget {
   const JobAssignedPage({super.key});

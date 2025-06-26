@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../screens/auth/login_page.dart';
-import '../screens/auth/forgot_password_page.dart';
-import '../screens/auth/otp_page.dart';
+import '../Screens/auth/login_page.dart';
+import '../Screens/auth/forgot_password_page.dart';
+import '../Screens/auth/otp_page.dart';
 
 final Map<String, WidgetBuilder> appRoutes = {
   '/login': (context) => const LoginPage(),

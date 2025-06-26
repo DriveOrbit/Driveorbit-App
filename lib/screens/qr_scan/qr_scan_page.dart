@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:driveorbit_app/screens/dashboard/dashboard_driver_page.dart';
+import 'package:driveorbit_app/Screens/dashboard/dashboard_driver_page.dart';
 import 'package:driveorbit_app/Screens/form/page1.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -1878,8 +1878,7 @@ class _ScanCodePageState extends State<ScanCodePage>
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.check_circle,
-                                  color: Colors.white),
+                              Icon(Icons.check_circle, color: Colors.white),
                               SizedBox(width: 8),
                               Flexible(
                                 child: Text(

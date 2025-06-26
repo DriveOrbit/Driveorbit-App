@@ -27,10 +27,11 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
   VehicleDetailsEntity? _vehicleDetails;
   bool _isLoadingVehicle = true;
   String _errorMessage = '';
-  
+
   // Variables for distance tracking
   double _currentTotalDistance = 0.0; // Store the current total distance
-  bool _isExceedingRecommendedDistance = false; // Flag to indicate if exceeding recommended distance
+  bool _isExceedingRecommendedDistance =
+      false; // Flag to indicate if exceeding recommended distance
 
   @override
   void initState() {
@@ -46,34 +47,36 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
       // Try to get distance from shared preferences first
       final prefs = await SharedPreferences.getInstance();
       _currentTotalDistance = prefs.getDouble('total_distance_traveled') ?? 0.0;
-      
+
       // If no data in SharedPreferences, try to get from current job in Firestore
       if (_currentTotalDistance == 0.0) {
         final currentJobId = prefs.getString('current_job_id');
-        
+
         if (currentJobId != null && currentJobId.isNotEmpty) {
           final jobDoc = await FirebaseFirestore.instance
               .collection('jobs')
               .doc(currentJobId)
               .get();
-              
+
           if (jobDoc.exists && jobDoc.data() != null) {
             final jobData = jobDoc.data()!;
             final distanceFromJob = jobData['totalDistanceTraveled'];
-            
+
             if (distanceFromJob != null) {
-              _currentTotalDistance = distanceFromJob is double ? 
-                  distanceFromJob : double.tryParse(distanceFromJob.toString()) ?? 0.0;
+              _currentTotalDistance = distanceFromJob is double
+                  ? distanceFromJob
+                  : double.tryParse(distanceFromJob.toString()) ?? 0.0;
             }
           }
         }
       }
-      
+
       if (mounted) {
         setState(() {
           // Check if exceeding recommended distance
           if (_vehicleDetails != null) {
-            _isExceedingRecommendedDistance = _currentTotalDistance > _vehicleDetails!.recommendedDistance;
+            _isExceedingRecommendedDistance =
+                _currentTotalDistance > _vehicleDetails!.recommendedDistance;
           }
         });
       }
@@ -99,7 +102,8 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
           setState(() {
             _vehicleDetails = vehicleData;
             _isLoadingVehicle = false;
-            _isExceedingRecommendedDistance = _currentTotalDistance > vehicleData.recommendedDistance;
+            _isExceedingRecommendedDistance =
+                _currentTotalDistance > vehicleData.recommendedDistance;
           });
           return;
         }
@@ -132,7 +136,8 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                 setState(() {
                   _vehicleDetails = vehicleData;
                   _isLoadingVehicle = false;
-                  _isExceedingRecommendedDistance = _currentTotalDistance > vehicleData.recommendedDistance;
+                  _isExceedingRecommendedDistance =
+                      _currentTotalDistance > vehicleData.recommendedDistance;
                 });
                 return;
               }
@@ -147,7 +152,8 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
         setState(() {
           _vehicleDetails = vehicles.first;
           _isLoadingVehicle = false;
-          _isExceedingRecommendedDistance = _currentTotalDistance > vehicles.first.recommendedDistance;
+          _isExceedingRecommendedDistance =
+              _currentTotalDistance > vehicles.first.recommendedDistance;
         });
       } else {
         throw Exception("No vehicles found");
@@ -334,17 +340,18 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
         return Colors.grey;
     }
   }
-  
+
   // New method to build distance progress bar
   Widget _buildDistanceProgressBar() {
     if (_vehicleDetails == null) {
       return const SizedBox.shrink();
     }
-    
+
     final recommendedDistance = _vehicleDetails!.recommendedDistance.toDouble();
-    double progressValue = recommendedDistance > 0 ? 
-        (_currentTotalDistance / recommendedDistance).clamp(0.0, 1.5) : 0.0;
-    
+    double progressValue = recommendedDistance > 0
+        ? (_currentTotalDistance / recommendedDistance).clamp(0.0, 1.5)
+        : 0.0;
+
     Color progressColor;
     if (progressValue >= 1.0) {
       progressColor = Colors.red;
@@ -353,7 +360,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
     } else {
       progressColor = Colors.green;
     }
-    
+
     return Container(
       margin: EdgeInsets.only(top: 12.h, bottom: 8.h),
       width: double.infinity,
@@ -646,7 +653,8 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                                     .startsWith('http')
                                                 ? NetworkImage(_vehicleDetails!
                                                     .vehicleImage)
-                                                : const AssetImage('assets/KDH.png'))
+                                                : const AssetImage(
+                                                    'assets/KDH.png'))
                                             as ImageProvider,
                                     fit: BoxFit.cover,
                                   ),
@@ -870,7 +878,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          
+
                           // New section for fuel consumption and recommended distance
                           Container(
                             margin: const EdgeInsets.only(bottom: 16),
@@ -886,15 +894,15 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                               ),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: _isExceedingRecommendedDistance 
-                                    ? Colors.red.withOpacity(0.3) 
+                                color: _isExceedingRecommendedDistance
+                                    ? Colors.red.withOpacity(0.3)
                                     : Colors.blue.withOpacity(0.3),
                                 width: 1.5,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: _isExceedingRecommendedDistance 
-                                      ? Colors.red.withOpacity(0.1) 
+                                  color: _isExceedingRecommendedDistance
+                                      ? Colors.red.withOpacity(0.1)
                                       : Colors.blue.withOpacity(0.1),
                                   blurRadius: 10,
                                   spreadRadius: 1,
@@ -930,7 +938,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                   ],
                                 ),
                                 const SizedBox(height: 20),
-                                
+
                                 // Fuel Consumption
                                 Row(
                                   children: [
@@ -958,9 +966,9 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                     ),
                                   ],
                                 ),
-                                
+
                                 const SizedBox(height: 16),
-                                
+
                                 // Recommended Distance with Progress Bar
                                 Text(
                                   'Recommended Service Interval:',
@@ -978,7 +986,7 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                                     fontSize: 16,
                                   ),
                                 ),
-                                
+
                                 // Custom distance progress bar
                                 _buildDistanceProgressBar(),
                               ],
