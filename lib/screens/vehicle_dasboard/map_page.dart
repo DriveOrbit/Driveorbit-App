@@ -1,8 +1,8 @@
 import 'package:driveorbit_app/Screens/dashboard/dashboard_driver_page.dart';
 import 'package:driveorbit_app/Screens/vehicle_dasboard/vehicle_info.dart';
 import 'package:driveorbit_app/models/notification_model.dart';
-import 'package:driveorbit_app/screens/profile/driver_profile.dart';
-import 'package:driveorbit_app/screens/vehicle_dasboard/driver_button.dart';
+import 'package:driveorbit_app/Screens/profile/driver_profile.dart';
+import 'package:driveorbit_app/Screens/vehicle_dasboard/driver_button.dart';
 import 'package:driveorbit_app/services/notification_service.dart';
 import 'package:driveorbit_app/widgets/notification_drawer.dart';
 import 'package:flutter/material.dart';
