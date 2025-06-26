@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:driveorbit_app/screens/vehicle_dasboard/map_page.dart';
+import 'package:driveorbit_app/Screens/vehicle_dasboard/map_page.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';

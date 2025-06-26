@@ -11,7 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:async';
-import 'package:driveorbit_app/screens/job/job_assign.dart'; // Import the real job page
+import 'package:driveorbit_app/Screens/job/job_assign.dart'; // Import the real job page
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';

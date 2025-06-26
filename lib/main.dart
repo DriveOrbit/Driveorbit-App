@@ -1,15 +1,15 @@
-import 'package:driveorbit_app/screens/dashboard/dashboard_driver_page.dart';
+import 'package:driveorbit_app/Screens/dashboard/dashboard_driver_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'screens/auth/login_page.dart';
-import 'screens/auth/forgot_password_page.dart';
-import 'screens/auth/otp_page.dart';
+import 'Screens/auth/login_page.dart';
+import 'Screens/auth/forgot_password_page.dart';
+import 'Screens/auth/otp_page.dart';
 import 'app/theme.dart';
-import 'screens/splash/splash_screen.dart';
+import 'Screens/splash/splash_screen.dart';
 
 void main() async {
   // Ensure Flutter is initialized before using platform channels
