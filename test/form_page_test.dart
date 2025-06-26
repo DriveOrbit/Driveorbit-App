@@ -6,6 +6,10 @@ void main() {
   group('MileageForm Widget Tests', () {
     testWidgets('Mileage TextField should accept input',
         (WidgetTester tester) async {
+      // Set a large screen size to prevent overflow
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+
       await tester.pumpWidget(const MaterialApp(home: MileageForm()));
 
       // Enter text in the TextField
@@ -14,10 +18,17 @@ void main() {
 
       // Verify that the text was entered
       expect(find.text('12345'), findsOneWidget);
+
+      // Reset the screen size
+      addTearDown(tester.view.reset);
     });
 
     testWidgets('Camera button should be tappable',
         (WidgetTester tester) async {
+      // Set a large screen size to prevent overflow
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+
       await tester.pumpWidget(const MaterialApp(home: MileageForm()));
 
       // Verify camera button is present
@@ -31,6 +42,9 @@ void main() {
         ),
       );
       await tester.pump();
+
+      // Reset the screen size
+      addTearDown(tester.view.reset);
     });
   });
 }

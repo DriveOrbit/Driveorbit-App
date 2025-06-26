@@ -211,7 +211,9 @@ class _DriverHistoryPageState extends State<DriverHistoryPage>
                                 onPrimary: Colors.white,
                                 surface: Color(0xFF303030),
                                 onSurface: Colors.white,
-                              ), dialogTheme: DialogThemeData(backgroundColor: Colors.grey[900]),
+                              ),
+                              dialogTheme: DialogThemeData(
+                                  backgroundColor: Colors.grey[900]),
                             ),
                             child: child!,
                           );
@@ -299,7 +301,9 @@ class _DriverHistoryPageState extends State<DriverHistoryPage>
                                 onPrimary: Colors.white,
                                 surface: Color(0xFF303030),
                                 onSurface: Colors.white,
-                              ), dialogTheme: DialogThemeData(backgroundColor: Colors.grey[900]),
+                              ),
+                              dialogTheme: DialogThemeData(
+                                  backgroundColor: Colors.grey[900]),
                             ),
                             child: child!,
                           );

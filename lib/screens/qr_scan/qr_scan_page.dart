@@ -1878,8 +1878,7 @@ class _ScanCodePageState extends State<ScanCodePage>
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.check_circle,
-                                  color: Colors.white),
+                              Icon(Icons.check_circle, color: Colors.white),
                               SizedBox(width: 8),
                               Flexible(
                                 child: Text(
